@@ -1,0 +1,2 @@
+-- Placeholder to satisfy migration history version 20251129
+-- The actual changes are in 20251129171500_add_details_to_students.sql
