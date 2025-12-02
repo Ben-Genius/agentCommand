@@ -1,20 +1,36 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { GraduationCap, LayoutDashboard, Users, Settings, LogOut, Menu, BookOpen, Brain } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { supabase } from '@/lib/supabase';
 
-export default function DashboardLayout({ children, view, setView }) {
+export default function DashboardLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
 
+  const isActive = (path) => {
+    if (path === '/dashboard' && location.pathname === '/dashboard') return true;
+    if (path !== '/dashboard' && location.pathname.startsWith(path)) return true;
+    return false;
+  };
 
+  const NavButton = ({ path, icon: Icon, label }) => (
+    <Button
+      variant={isActive(path) ? 'secondary' : 'ghost'}
+      className="w-full justify-start gap-3"
+      onClick={() => { navigate(path); setIsMobileOpen(false); }}
+    >
+      <Icon size={20} />
+      {label}
+    </Button>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -31,46 +47,11 @@ export default function DashboardLayout({ children, view, setView }) {
           </div>
 
           <nav className="flex-1 px-4 py-6 space-y-2">
-            <Button
-              variant={view === 'dashboard' ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3"
-              onClick={() => { setView('dashboard'); setIsMobileOpen(false); }}
-            >
-              <LayoutDashboard size={20} />
-              Dashboard
-            </Button>
-            <Button
-              variant={view === 'list' ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3"
-              onClick={() => { setView('list'); setIsMobileOpen(false); }}
-            >
-              <Users size={20} />
-              All Students
-            </Button>
-            <Button
-              variant={view === 'universities' ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3"
-              onClick={() => { setView('universities'); setIsMobileOpen(false); }}
-            >
-              <BookOpen size={20} />
-              Universities
-            </Button>
-            <Button
-              variant={view === 'brainstorm' ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3"
-              onClick={() => { setView('brainstorm'); setIsMobileOpen(false); }}
-            >
-              <Brain size={20} />
-              Brainstorm
-            </Button>
-            <Button
-              variant={view === 'settings' ? 'secondary' : 'ghost'}
-              className="w-full justify-start gap-3"
-              onClick={() => { setView('settings'); setIsMobileOpen(false); }}
-            >
-              <Settings size={20} />
-              Settings
-            </Button>
+            <NavButton path="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+            <NavButton path="/dashboard/students" icon={Users} label="All Students" />
+            <NavButton path="/dashboard/universities" icon={BookOpen} label="Universities" />
+            <NavButton path="/dashboard/brainstorm" icon={Brain} label="Brainstorm" />
+            <NavButton path="/dashboard/settings" icon={Settings} label="Settings" />
           </nav>
 
           <div className="p-4 border-t">
@@ -113,46 +94,11 @@ export default function DashboardLayout({ children, view, setView }) {
               </div>
 
               <nav className="flex-1 px-4 py-6 space-y-2">
-                <Button
-                  variant={view === 'dashboard' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start gap-3"
-                  onClick={() => { setView('dashboard'); setIsMobileOpen(false); }}
-                >
-                  <LayoutDashboard size={20} />
-                  Dashboard
-                </Button>
-                <Button
-                  variant={view === 'list' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start gap-3"
-                  onClick={() => { setView('list'); setIsMobileOpen(false); }}
-                >
-                  <Users size={20} />
-                  All Students
-                </Button>
-                <Button
-                  variant={view === 'universities' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start gap-3"
-                  onClick={() => { setView('universities'); setIsMobileOpen(false); }}
-                >
-                  <BookOpen size={20} />
-                  Universities
-                </Button>
-                <Button
-                  variant={view === 'brainstorm' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start gap-3"
-                  onClick={() => { setView('brainstorm'); setIsMobileOpen(false); }}
-                >
-                  <Brain size={20} />
-                  Brainstorm
-                </Button>
-                <Button
-                  variant={view === 'settings' ? 'secondary' : 'ghost'}
-                  className="w-full justify-start gap-3"
-                  onClick={() => { setView('settings'); setIsMobileOpen(false); }}
-                >
-                  <Settings size={20} />
-                  Settings
-                </Button>
+                <NavButton path="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+                <NavButton path="/dashboard/students" icon={Users} label="All Students" />
+                <NavButton path="/dashboard/universities" icon={BookOpen} label="Universities" />
+                <NavButton path="/dashboard/brainstorm" icon={Brain} label="Brainstorm" />
+                <NavButton path="/dashboard/settings" icon={Settings} label="Settings" />
               </nav>
 
               <div className="p-4 border-t">
@@ -173,7 +119,7 @@ export default function DashboardLayout({ children, view, setView }) {
       {/* Main Content */}
       <main className="flex-1 md:ml-64 pt-16 md:pt-0 p-8 overflow-y-auto h-screen">
         <div className="max-w-6xl mx-auto">
-          {children}
+          <Outlet />
         </div>
       </main>
     </div>

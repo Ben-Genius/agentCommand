@@ -11,6 +11,72 @@ export const standardDocuments = [
 
 export const universities = [
   {
+    id: "ualberta",
+    name: "University of Alberta",
+    location: "Edmonton, Alberta",
+    deadline: "Jan 10, 2026 (Scholarship)",
+    scholarships: [
+      {
+        name: "President's International Distinction",
+        value: "$120,000 ($30k/yr x 4)",
+        notes: "Criteria: Superior academics (A1s) + Leadership. Apply for admission first, then submit separate scholarship app in 'BearTracks' portal."
+      },
+      {
+        name: "International Leader Scholarship",
+        value: "$5,000 – $10,000",
+        notes: "Automatic consideration. Top academic standing."
+      }
+    ],
+    appFee: "~$125 CAD",
+    tuition: "~$35,000 – $45,000 CAD (Program-Based Guarantee)",
+    roomBoard: "~$12,000 – $15,000 CAD",
+    insights: "The Gold Standard:\n• $120k Strategy: Apply for admission by Dec 1 to get your CCID in time for the Jan 10 scholarship deadline.\n• Essays: Focus on 'Service Leadership' (how you helped others).\n• Cost: Significantly cheaper living costs than Toronto/Vancouver."
+  },
+  {
+    id: "western",
+    name: "Western University",
+    location: "London, Ontario",
+    deadline: "Feb 14, 2026 (National Scholarship)",
+    scholarships: [
+      {
+        name: "Intl. President's Entrance",
+        value: "$100,000 ($25k/yr x 4)",
+        notes: "Criteria: 90%+ Average + Innovative Thought + Extracurriculars. Requires 'National Scholarship' application (Essay + Nomination)."
+      },
+      {
+        name: "Western Scholarship of Excellence",
+        value: "$8,000",
+        notes: "Automatic. Top high school grades (usually straight A1s)."
+      }
+    ],
+    appFee: "~$256 CAD (OUAC + Eval Fee)",
+    tuition: "~$45,000 – $60,000 CAD",
+    roomBoard: "~$15,000 – $18,000 CAD",
+    insights: "The Creative Application:\n• Unique Essay: Western asks for evidence of 'Innovative Thought'. Describe a problem you solved creatively.\n• Nomination: Requires headmaster nomination for the National Scholarship (ask in Jan)."
+  },
+  {
+    id: "ucalgary",
+    name: "University of Calgary",
+    location: "Calgary, Alberta",
+    deadline: "Dec 1, 2025 (Prestige Award)",
+    scholarships: [
+      {
+        name: "International Entrance Scholarship",
+        value: "$80,000 ($20k/yr x 4)",
+        notes: "Criteria: Academic merit (A1s) + accomplishments outside classroom. Apply for admission NOW. Submit 'Prestige Award' app by Dec 1."
+      },
+      {
+        name: "International Entrance Award",
+        value: "$10,000",
+        notes: "Automatic consideration for top grades (Non-Renewable)."
+      }
+    ],
+    appFee: "$145 CAD",
+    tuition: "~$28,000 – $38,000 CAD (Low Tuition)",
+    roomBoard: "~$11,000 – $14,000 CAD",
+    insights: "The Best Value:\n• ROI: $80k scholarship + low tuition ($28k) covers ~70-80% of costs.\n• Urgency: Strict Dec 1 deadline. Apply immediately if reading in late Nov."
+  },
+  {
     id: "uoft",
     name: "Univ. of Toronto",
     location: "Toronto, Ontario",
@@ -36,6 +102,38 @@ export const universities = [
     tuition: "$61,720 – $72,260 (Highest in Canada)",
     roomBoard: "$16,000 – $26,000 (High cost of living)",
     insights: "Your Best Bet: Since the Pearson deadline passed, focus on the **$100k International Scholar Award**. You are automatically considered just by applying.\n\n💡 Tip: Apply by Dec 15 to get your file reviewed early for these funds."
+  },
+  {
+    id: "waterloo",
+    name: "University of Waterloo",
+    location: "Waterloo, Ontario",
+    deadline: "Jan 30, 2026 (Jan 15 for Eng)",
+    scholarships: [
+      { 
+        name: "International Student Entrance Scholarship", 
+        value: "$10,000 (20 awards)", 
+        notes: "Automatic consideration. 90%+ admission average." 
+      },
+      { 
+        name: "Faculty of Science Intl. Scholarship", 
+        value: "$25,000", 
+        notes: "Academic excellence + Application Statement. Deadline: Feb 14 / Apr 4." 
+      },
+      { 
+        name: "President's Scholarship of Distinction", 
+        value: "$2,000 + Research Grant", 
+        notes: "95%+ admission average. Automatic." 
+      },
+      { 
+        name: "Merit Scholarship", 
+        value: "$1,000", 
+        notes: "90-94.9% admission average. Automatic." 
+      }
+    ],
+    appFee: "~$166 CAD",
+    tuition: "~$49,000 – $73,000 CAD (Higher for Eng/CS)",
+    roomBoard: "~$14,600 – $18,250 CAD",
+    insights: "The \"Co-op\" Powerhouse:\n• Strategy: Waterloo is famous for its Co-op Program. You can earn $15k-$20k CAD per work term (semester). This is often better than a scholarship because it guarantees income and Canadian work experience.\n\n• Application: Apply to the \"Co-op\" stream of your program on OUAC.\n\n• Scholarship: The $10k entrance award is automatic if your grades are A1s. For Science students, the $25k award requires a separate application—don't miss it!"
   },
   {
     id: "ubc",
@@ -443,12 +541,28 @@ export const universities = [
     id: "unb",
     name: "Univ. of New Brunswick",
     location: "Fredericton/Saint John, NB",
-    deadline: "Feb 15",
-    scholarships: [],
-    appFee: "$104.40 CAD",
-    tuition: "~$18,720 CAD",
-    roomBoard: "Moderate",
-    insights: "Oldest English University:\n• IELTS: 6.5 overall.\n• Accepts SAT/ACT/CXC."
+    deadline: "Mar 1 (Scholarship) / Mar 31 (Admission)",
+    scholarships: [
+      {
+        name: "Lady Vi Aitken Scholarship",
+        value: "$40,000 ($10k/yr x 4)",
+        notes: "Top international student. High academic performance."
+      },
+      {
+        name: "Entrance Scholarships",
+        value: "$500 – $40,000",
+        notes: "Requires separate app by Mar 1. Covers 400+ awards."
+      },
+      {
+        name: "Guaranteed Minimums",
+        value: "$500 – $2,000+",
+        notes: "80-89.9% ($500), 90%+ ($1k-$2k+)."
+      }
+    ],
+    appFee: "$125 CAD",
+    tuition: "~$20,265 – $25,000 CAD (Low Cost Leader)",
+    roomBoard: "~$11,500 – $14,000 CAD",
+    insights: "The Low Cost Leader:\n• Total Budget: ~$32k/year (Tuition + Living). This is ~$50k/year cheaper than U of T.\n• Strategy: You MUST submit the scholarship app by Mar 1. It is not automatic.\n• WASSCE: UNB is familiar with West African curriculum. Upload scratch card early."
   },
   {
     id: "mun",

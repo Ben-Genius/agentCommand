@@ -11,6 +11,7 @@ import LoginPage from '@/components/auth/LoginPage';
 import SignupPage from '@/components/auth/SignupPage';
 import DashboardPage from '@/components/dashboard/DashboardPage';
 import StudentDetailPage from '@/components/dashboard/StudentDetailPage';
+import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -61,22 +62,24 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          
+          {/* Dashboard Routes */}
           <Route 
             path="/dashboard" 
             element={
               <ProtectedRoute>
-                <DashboardPage />
+                <DashboardLayout />
               </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/students/:id" 
-            element={
-              <ProtectedRoute>
-                <StudentDetailPage />
-              </ProtectedRoute>
-            } 
-          />
+            }
+          >
+            <Route index element={<DashboardPage view="dashboard" />} />
+            <Route path="students" element={<DashboardPage view="list" />} />
+            <Route path="universities" element={<DashboardPage view="universities" />} />
+            <Route path="brainstorm" element={<DashboardPage view="brainstorm" />} />
+            <Route path="settings" element={<DashboardPage view="settings" />} />
+            <Route path="student/:id" element={<StudentDetailPage />} />
+          </Route>
+
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

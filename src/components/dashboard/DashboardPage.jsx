@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Loader2, Shield, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { sendNotification } from '@/utils/notifications';
@@ -6,7 +7,6 @@ import { generateStudentReport } from '@/utils/aiGenerator';
 import { toast } from 'sonner';
 
 // Components
-import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import StudentTable from '@/components/dashboard/StudentTable';
 import StudentDialog from '@/components/dashboard/StudentDialog';
@@ -14,17 +14,24 @@ import NotificationModal from '@/components/dashboard/NotificationModal';
 import AIReportModal from '@/components/dashboard/AIReportModal';
 import AgentAssistantModal from '@/components/dashboard/AgentAssistantModal';
 import UniversityList from '@/components/dashboard/UniversityList';
-import StudentProfilePage from '@/components/dashboard/StudentProfilePage';
 import BrainstormPage from '@/components/dashboard/BrainstormPage';
 import { Button } from '@/components/ui/button';
 import { Bot } from 'lucide-react';
 
 import { ModeToggle } from '@/components/mode-toggle';
 
-export default function DashboardPage() {
+export default function DashboardPage({ view: propView }) {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState('dashboard');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Use propView if provided (from App.jsx nested routes), otherwise fall back to searchParams
+  const view = propView || searchParams.get('view') || 'dashboard';
+  
+  const setView = (newView) => {
+    setSearchParams({ view: newView });
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showConflictGuard, setShowConflictGuard] = useState(true);
 
@@ -49,7 +56,10 @@ export default function DashboardPage() {
     }
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('students').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('students')
+        .select('*, applications(university_name, status)')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setStudents(data || []);
     } catch (error) {
@@ -201,7 +211,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardLayout view={view} setView={setView}>
+    <>
       {/* Conflict Guard */}
       {showConflictGuard && (
         <div className="mb-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-lg shadow-sm flex items-start justify-between">
@@ -234,16 +244,7 @@ export default function DashboardPage() {
       
       {view === 'brainstorm' && <BrainstormPage />}
 
-      {view === 'profile' && selectedStudent ? (
-        <StudentProfilePage 
-          student={selectedStudent} 
-          onBack={() => { setView('list'); setSelectedStudent(null); }} 
-          onUpdate={(updatedStudent) => {
-            setSelectedStudent(updatedStudent);
-            setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
-          }}
-        />
-      ) : view === 'list' || view === 'dashboard' ? ( // Show table on dashboard or list view
+      {(view === 'list' || view === 'dashboard') && ( // Show table on dashboard or list view
         <StudentTable 
           students={students}
           searchTerm={searchTerm}
@@ -253,9 +254,8 @@ export default function DashboardPage() {
           onNotify={(s) => { setSelectedStudent(s); setShowNotifModal(true); }}
           onGenerateReport={handleGenerateReport}
           onAdd={() => { setEditingStudent(null); setShowStudentModal(true); }}
-          onViewProfile={(s) => { setSelectedStudent(s); setView('profile'); }}
         />
-      ) : null}
+      )}
 
       {/* Modals */}
       <StudentDialog 
@@ -283,6 +283,6 @@ export default function DashboardPage() {
         open={showAgentModal}
         onOpenChange={setShowAgentModal}
       />
-    </DashboardLayout>
+    </>
   );
 }

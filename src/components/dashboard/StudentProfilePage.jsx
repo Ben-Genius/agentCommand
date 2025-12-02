@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Brain, MoreVertical, Trash2, Edit, FileText, ExternalLink, Calendar, MapPin, DollarSign, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Plus, Brain, MoreVertical, Trash2, Edit, FileText, ExternalLink, Calendar, MapPin, DollarSign, GraduationCap, School, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,6 +47,14 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentStudent, setCurrentStudent] = useState(student);
+  const [documents, setDocuments] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  
+  // Upload Dialog State
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadName, setUploadName] = useState('');
+  const fileInputRef = useRef(null);
   
   // Dialog States
   const [isAddUniOpen, setIsAddUniOpen] = useState(false);
@@ -60,11 +68,29 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
   const [viewApp, setViewApp] = useState(null);
   const [viewUni, setViewUni] = useState(null);
   const [isEditingApp, setIsEditingApp] = useState(false);
+  const [customFields, setCustomFields] = useState([]); // State for dynamic custom fields
 
   useEffect(() => {
     fetchApplications();
     fetchLatestStudentData();
+    fetchDocuments();
   }, [currentStudent.id]);
+
+  const fetchDocuments = async () => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('student_id', currentStudent.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+    }
+  };
 
   const fetchLatestStudentData = async () => {
     if (!supabase) return;
@@ -110,6 +136,96 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     const uni = universities.find(u => u.id === app.university_id);
     setViewUni(uni || null);
     setIsSheetOpen(true);
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploadFile(file);
+    setUploadName(file.name);
+    setIsUploadDialogOpen(true);
+    // Reset input so same file can be selected again if cancelled
+    e.target.value = '';
+  };
+
+  const handleUploadConfirm = async () => {
+    if (!uploadFile || !uploadName) return;
+
+    setUploading(true);
+    try {
+      const fileExt = uploadFile.name.split('.').pop();
+      const fileName = `${currentStudent.id}/${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = fileName;
+
+      const { error: uploadError } = await supabase.storage
+        .from('student-documents')
+        .upload(filePath, uploadFile);
+
+      if (uploadError) throw uploadError;
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .insert([
+          {
+            student_id: currentStudent.id,
+            name: uploadName, // Use custom name
+            file_path: filePath,
+            file_type: uploadFile.type,
+            size: uploadFile.size
+          }
+        ]);
+
+      if (dbError) throw dbError;
+
+      toast.success('File uploaded successfully');
+      fetchDocuments();
+      setIsUploadDialogOpen(false);
+      setUploadFile(null);
+      setUploadName('');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('Failed to upload file');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDeleteDocument = async (doc) => {
+    if (!confirm('Are you sure you want to delete this document?')) return;
+
+    try {
+      const { error: storageError } = await supabase.storage
+        .from('student-documents')
+        .remove([doc.file_path]);
+
+      if (storageError) throw storageError;
+
+      const { error: dbError } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', doc.id);
+
+      if (dbError) throw dbError;
+
+      toast.success('Document deleted');
+      setDocuments(docs => docs.filter(d => d.id !== doc.id));
+    } catch (error) {
+      console.error('Error deleting document:', error);
+      toast.error('Failed to delete document');
+    }
+  };
+
+  const handleDownloadDocument = async (doc) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('student-documents')
+        .createSignedUrl(doc.file_path, 60);
+
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      toast.error('Failed to download document');
+    }
   };
 
   // --- CRUD Operations ---
@@ -228,41 +344,81 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     }
   };
 
-  const handleEditSave = async (e) => {
+  // This handleEditSave is for the Dialog
+  const handleEditSaveDialog = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const updates = {
       university_name: formData.get('university_name'),
       deadline: formData.get('deadline') || null,
       notes: formData.get('notes'),
-      status: formData.get('status'),
     };
-
-    // If editing from the sheet
-    const appId = isEditingApp ? viewApp.id : selectedApp.id;
 
     try {
       const { error } = await supabase
         .from('applications')
         .update(updates)
-        .eq('id', appId);
+        .eq('id', selectedApp.id);
 
       if (error) throw error;
       toast.success('Application updated');
       fetchApplications(); 
-      
-      if (isEditingApp) {
+      setIsEditAppOpen(false);
+      if (viewApp && viewApp.id === selectedApp.id) {
         setViewApp({ ...viewApp, ...updates });
-        setIsEditingApp(false);
-      } else {
-        setIsEditAppOpen(false);
-        if (viewApp && viewApp.id === appId) {
-          setViewApp({ ...viewApp, ...updates });
-        }
       }
     } catch (error) {
       toast.error('Failed to update application');
     }
+  };
+
+  // This handleEditSave is for the Sheet
+  const handleEditSaveSheet = async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const updates = {
+      university_name: formData.get('university_name'),
+      deadline: formData.get('deadline'),
+      notes: formData.get('notes'),
+      status: formData.get('status'),
+      program: formData.get('program'),
+      supplementary_essay: formData.get('supplementary_essay'),
+      bio_info: formData.get('bio_info'),
+      custom_fields: customFields,
+    };
+
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update(updates)
+        .eq('id', viewApp.id);
+
+      if (error) throw error;
+      
+      const updatedApp = { ...viewApp, ...updates };
+      setViewApp(updatedApp);
+      setApplications(apps => apps.map(a => a.id === viewApp.id ? updatedApp : a));
+      setIsEditingApp(false);
+      toast.success('Application updated');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to update application');
+    }
+  };
+
+  const handleAddCustomField = () => {
+    setCustomFields([...customFields, { key: '', value: '' }]);
+  };
+
+  const handleCustomFieldChange = (index, field, value) => {
+    const newFields = [...customFields];
+    newFields[index][field] = value;
+    setCustomFields(newFields);
+  };
+
+  const handleDeleteCustomField = (index) => {
+    const newFields = customFields.filter((_, i) => i !== index);
+    setCustomFields(newFields);
   };
 
   const handleStatsSave = async (e) => {
@@ -273,6 +429,17 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
       ielts_score: formData.get('ielts_score'),
       gpa: formData.get('gpa'),
       phone: formData.get('phone'),
+      major: formData.get('major'),
+      portal: formData.get('portal'),
+      interests: formData.get('interests'),
+      background: formData.get('background'),
+      date_of_birth: formData.get('date_of_birth'),
+      address: formData.get('address'),
+      school_name: formData.get('school_name'),
+      school_address: formData.get('school_address'),
+      course_offered: formData.get('course_offered'),
+      education_start_date: formData.get('education_start_date'),
+      education_end_date: formData.get('education_end_date'),
     };
 
     try {
@@ -312,8 +479,10 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
       case 'Accepted': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800';
       case 'Rejected': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
       case 'Applied': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
+      case 'Applying': return 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
       case 'Waitlisted': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
       case 'Enrolled': return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
+      case 'Visa Pending': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800';
       default: return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
     }
   };
@@ -386,6 +555,138 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
         </Card>
       </div>
 
+      {/* Detailed Profile Info */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-semibold">Student Details</CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => setIsEditStatsOpen(true)}>
+            <Edit size={16} className="mr-2" /> Edit Details
+          </Button>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Major</Label>
+              <div className="font-medium mt-1">{currentStudent.major || 'Not specified'}</div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Date of Birth</Label>
+              <div className="font-medium mt-1 flex items-center gap-2">
+                <Calendar size={14} className="text-muted-foreground" />
+                {currentStudent.date_of_birth ? new Date(currentStudent.date_of_birth).toLocaleDateString() : 'Not set'}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
+              <div className="font-medium mt-1 flex items-center gap-2">
+                <MapPin size={14} className="text-muted-foreground" />
+                <span className="text-sm">{currentStudent.address || 'No address'}</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Education</Label>
+              <div className="font-medium mt-1">
+                <div className="flex items-center gap-2">
+                  <School size={14} className="text-muted-foreground" />
+                  <span className="text-sm font-semibold">{currentStudent.school_name || 'No school listed'}</span>
+                </div>
+                {currentStudent.school_address && (
+                  <div className="text-xs text-muted-foreground ml-6">{currentStudent.school_address}</div>
+                )}
+                {currentStudent.course_offered && (
+                  <div className="text-xs text-muted-foreground ml-6 mt-1">Course: {currentStudent.course_offered}</div>
+                )}
+                {(currentStudent.education_start_date || currentStudent.education_end_date) && (
+                  <div className="text-xs text-muted-foreground ml-6">
+                    {currentStudent.education_start_date ? new Date(currentStudent.education_start_date).toLocaleDateString() : '?'} 
+                    {' - '} 
+                    {currentStudent.education_end_date ? new Date(currentStudent.education_end_date).toLocaleDateString() : 'Present'}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Portal / Login</Label>
+              <div className="font-medium mt-1 text-sm font-mono bg-muted/50 p-2 rounded">
+                {currentStudent.portal || 'No portal info'}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Interests</Label>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {currentStudent.interests || 'No interests listed.'}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Background</Label>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {currentStudent.background || 'No background info.'}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Documents Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-lg font-semibold">Documents</CardTitle>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleFileSelect}
+              disabled={uploading}
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="gap-2"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Upload Document
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {documents.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+              <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
+              <p>No documents uploaded yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors group">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="p-2 bg-primary/10 rounded text-primary">
+                      <FileText size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate" title={doc.name}>{doc.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {(doc.size / 1024 / 1024).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadDocument(doc)}>
+                      <ExternalLink size={16} />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc)}>
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Applications Table */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -432,7 +733,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                           </Badge>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
-                          {['Planning', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
+                          {['Planning', 'Applying', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
                              <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(app.id, s)}>{s}</DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>
@@ -522,9 +823,13 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                 className="justify-start h-auto py-3 px-4"
                 onClick={() => handleAddApplication(uni)}
               >
-                <div className="text-left">
-                  <div className="font-semibold">{uni.name}</div>
-                  <div className="text-xs text-muted-foreground">{uni.location}</div>
+                <div className="text-left w-full">
+                  <div className="font-semibold truncate">{uni.name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{uni.location}</div>
+                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+                     {uni.deadline && <span className="bg-slate-100 px-1 rounded">📅 {uni.deadline.split(',')[0]}</span>}
+                     {uni.tuition && <span className="bg-slate-100 px-1 rounded">💰 {uni.tuition.split(' ')[0]}</span>}
+                  </div>
                 </div>
               </Button>
             ))}
@@ -559,7 +864,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
             <DialogTitle>Edit Application</DialogTitle>
           </DialogHeader>
           {selectedApp && (
-            <form onSubmit={handleEditSave} className="space-y-4">
+            <form onSubmit={handleEditSaveDialog} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="university_name">University Name</Label>
                 <Input id="university_name" name="university_name" defaultValue={selectedApp.university_name} required />
@@ -583,10 +888,10 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
 
       {/* Edit Stats Dialog */}
       <Dialog open={isEditStatsOpen} onOpenChange={setIsEditStatsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Edit Profile Stats</DialogTitle>
-            <DialogDescription>Update student academic and contact info.</DialogDescription>
+            <DialogTitle>Edit Profile & Stats</DialogTitle>
+            <DialogDescription>Update student academic, contact, and personal info.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleStatsSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -599,19 +904,108 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                 <Input id="ielts_score" name="ielts_score" defaultValue={currentStudent.ielts_score} placeholder="e.g. 7.5" />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gpa">GPA / Grades</Label>
-              <Input id="gpa" name="gpa" defaultValue={currentStudent.gpa} placeholder="e.g. 3.8 or 95%" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="gpa">GPA / Grades</Label>
+                <Input id="gpa" name="gpa" defaultValue={currentStudent.gpa} placeholder="e.g. 3.8 or 95%" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input id="phone" name="phone" defaultValue={currentStudent.phone} placeholder="+1..." />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="major">Intended Major</Label>
+                <Input id="major" name="major" defaultValue={currentStudent.major} placeholder="e.g. Computer Science" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Date of Birth</Label>
+                <Input id="date_of_birth" name="date_of_birth" type="date" defaultValue={currentStudent.date_of_birth} />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input id="address" name="address" defaultValue={currentStudent.address} placeholder="e.g. 123 Main St" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="school_name">School / University</Label>
+                <Input id="school_name" name="school_name" defaultValue={currentStudent.school_name} placeholder="e.g. Lincoln High" />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" name="phone" defaultValue={currentStudent.phone} placeholder="+1..." />
+              <Label htmlFor="school_address">School Address</Label>
+              <Input id="school_address" name="school_address" defaultValue={currentStudent.school_address} placeholder="e.g. 456 School Ave" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="course_offered">Course / Program</Label>
+              <Input id="course_offered" name="course_offered" defaultValue={currentStudent.course_offered} placeholder="e.g. IB Diploma, A-Levels" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="education_start_date">Start Date</Label>
+                <Input id="education_start_date" name="education_start_date" type="date" defaultValue={currentStudent.education_start_date} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="education_end_date">End Date (Expected)</Label>
+                <Input id="education_end_date" name="education_end_date" type="date" defaultValue={currentStudent.education_end_date} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="portal">Portal / Login Details</Label>
+              <Input id="portal" name="portal" defaultValue={currentStudent.portal} placeholder="e.g. URL or Username" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interests">Interests</Label>
+              <Textarea id="interests" name="interests" defaultValue={currentStudent.interests} placeholder="e.g. Robotics, Debate, Piano" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="background">Background / Bio</Label>
+              <Textarea id="background" name="background" defaultValue={currentStudent.background} placeholder="Brief background..." />
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditStatsOpen(false)}>Cancel</Button>
               <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Dialog */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>
+              Enter a name for this document.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="doc-name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="doc-name"
+                value={uploadName}
+                onChange={(e) => setUploadName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            {uploadFile && (
+              <div className="text-sm text-muted-foreground text-center">
+                File: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleUploadConfirm} disabled={!uploadName || uploading}>
+              {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Upload
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -625,7 +1019,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                   {isEditingApp ? (
                      <div className="w-full">
                        <SheetTitle>Edit Application</SheetTitle>
-                       <form id="sheet-edit-form" onSubmit={handleEditSave} className="space-y-4 mt-4">
+                       <form id="sheet-edit-form" onSubmit={handleEditSaveSheet} className="space-y-4 mt-4">
                          <div className="space-y-2">
                            <Label htmlFor="sheet_uni_name">University Name</Label>
                            <Input id="sheet_uni_name" name="university_name" defaultValue={viewApp.university_name} required />
@@ -643,21 +1037,63 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                                defaultValue={viewApp.status}
                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                              >
-                               {['Planning', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
+                               {['Planning', 'Applying', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
                                  <option key={s} value={s}>{s}</option>
                                ))}
                              </select>
                            </div>
                          </div>
-                         <div className="space-y-2">
-                           <Label htmlFor="sheet_notes">Notes</Label>
-                           <Textarea id="sheet_notes" name="notes" defaultValue={viewApp.notes} />
-                         </div>
-                         <div className="flex gap-2 justify-end pt-2">
-                           <Button type="button" variant="outline" onClick={() => setIsEditingApp(false)}>Cancel</Button>
-                           <Button type="submit">Save Changes</Button>
-                         </div>
-                       </form>
+                          <div className="space-y-2">
+                            <Label htmlFor="sheet_program">Program Applied</Label>
+                            <Input id="sheet_program" name="program" defaultValue={viewApp.program} placeholder="e.g. Computer Science (Co-op)" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="sheet_notes">Notes</Label>
+                            <Textarea id="sheet_notes" name="notes" defaultValue={viewApp.notes} />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="sheet_essay">Supplementary Essay</Label>
+                            <Textarea id="sheet_essay" name="supplementary_essay" defaultValue={viewApp.supplementary_essay} placeholder="Draft or notes on essay..." className="min-h-[100px]" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="sheet_bio">Bio Info / Personal Statement</Label>
+                            <Textarea id="sheet_bio" name="bio_info" defaultValue={viewApp.bio_info} placeholder="Key points for bio..." className="min-h-[100px]" />
+                          </div>
+
+                          {/* Dynamic Custom Fields */}
+                          <div className="space-y-2 border-t pt-4">
+                            <div className="flex items-center justify-between">
+                              <Label>Custom Fields</Label>
+                              <Button type="button" variant="outline" size="sm" onClick={handleAddCustomField}>
+                                <Plus size={12} className="mr-1" /> Add Field
+                              </Button>
+                            </div>
+                            {customFields.map((field, index) => (
+                              <div key={index} className="flex gap-2 items-start">
+                                <Input 
+                                  placeholder="Title (e.g. Scholarship Link)" 
+                                  value={field.key} 
+                                  onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
+                                  className="w-1/3"
+                                />
+                                <Input 
+                                  placeholder="Value" 
+                                  value={field.value} 
+                                  onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
+                                  className="flex-1"
+                                />
+                                <Button type="button" variant="ghost" size="icon" onClick={() => handleDeleteCustomField(index)}>
+                                  <Trash2 size={16} className="text-red-500" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="flex gap-2 justify-end pt-2">
+                            <Button type="button" variant="outline" onClick={() => setIsEditingApp(false)}>Cancel</Button>
+                            <Button type="submit">Save Changes</Button>
+                          </div>
+                        </form>
                      </div>
                   ) : (
                     <>
@@ -671,7 +1107,10 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                         <Badge className={`text-sm px-3 py-1 ${getStatusColor(viewApp.status)}`}>
                           {viewApp.status}
                         </Badge>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setIsEditingApp(true)}>
+                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
+                          setCustomFields(viewApp.custom_fields || []);
+                          setIsEditingApp(true);
+                        }}>
                           <Edit size={12} /> Edit
                         </Button>
                       </div>
@@ -704,6 +1143,45 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Program Info */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Program</Label>
+                    <div className="font-medium">{viewApp.program || 'Not specified'}</div>
+                  </div>
+
+                  {/* Essays & Bio */}
+                  {(viewApp.supplementary_essay || viewApp.bio_info) && (
+                    <div className="grid grid-cols-1 gap-4">
+                      {viewApp.supplementary_essay && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Supplementary Essay</Label>
+                          <div className="bg-muted/30 p-3 rounded-md text-sm whitespace-pre-wrap">{viewApp.supplementary_essay}</div>
+                        </div>
+                      )}
+                      {viewApp.bio_info && (
+                        <div className="space-y-1">
+                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Bio Info</Label>
+                          <div className="bg-muted/30 p-3 rounded-md text-sm whitespace-pre-wrap">{viewApp.bio_info}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Custom Fields Display */}
+                  {viewApp.custom_fields && viewApp.custom_fields.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Additional Info</Label>
+                      <div className="grid grid-cols-1 gap-2">
+                        {viewApp.custom_fields.map((field, idx) => (
+                          <div key={idx} className="bg-muted/30 p-2 rounded-md text-sm flex flex-col">
+                            <span className="font-semibold text-xs text-muted-foreground">{field.key}</span>
+                            <span>{field.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Notes */}
                   <div className="space-y-2">
