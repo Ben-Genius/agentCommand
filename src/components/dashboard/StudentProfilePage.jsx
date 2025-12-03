@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Plus, Brain, MoreVertical, Trash2, Edit, FileText, ExternalLink, Calendar, MapPin, DollarSign, GraduationCap, School, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, Plus, Brain, MoreVertical, Trash2, Edit, FileText, 
+  ExternalLink, Calendar, MapPin, DollarSign, GraduationCap, 
+  School, Loader2, Globe, Lock, BookOpen, GitBranch, Star, 
+  Eye, GitPullRequest, PlayCircle, CheckCircle2, AlertCircle, 
+  Clock, Send, Mail, Phone, User, Briefcase, Paperclip, 
+  MessageSquare, History,
+  Lightbulb
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -38,10 +39,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { universities, standardDocuments } from '@/data/universities';
-import { ModeToggle } from '@/components/mode-toggle';
 
 export default function StudentProfilePage({ student, onBack, onUpdate }) {
   const [applications, setApplications] = useState([]);
@@ -68,7 +71,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
   const [viewApp, setViewApp] = useState(null);
   const [viewUni, setViewUni] = useState(null);
   const [isEditingApp, setIsEditingApp] = useState(false);
-  const [customFields, setCustomFields] = useState([]); // State for dynamic custom fields
+  const [customFields, setCustomFields] = useState([]);
 
   useEffect(() => {
     fetchApplications();
@@ -132,8 +135,8 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
 
   const handleViewApplication = (app) => {
     setViewApp(app);
-    // Find university details if available
     const uni = universities.find(u => u.id === app.university_id);
+    console.log(viewApp);
     setViewUni(uni || null);
     setIsSheetOpen(true);
   };
@@ -144,7 +147,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     setUploadFile(file);
     setUploadName(file.name);
     setIsUploadDialogOpen(true);
-    // Reset input so same file can be selected again if cancelled
     e.target.value = '';
   };
 
@@ -168,7 +170,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
         .insert([
           {
             student_id: currentStudent.id,
-            name: uploadName, // Use custom name
+            name: uploadName,
             file_path: filePath,
             file_type: uploadFile.type,
             size: uploadFile.size
@@ -228,8 +230,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     }
   };
 
-  // --- CRUD Operations ---
-
   const handleAddApplication = async (uniOrName) => {
     try {
       const isCustom = typeof uniOrName === 'string';
@@ -239,8 +239,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
       let deadline = null;
       if (!isCustom && uniOrName.deadline) {
          try {
-             // Attempt to parse date if it's in a standard format, otherwise might need manual entry
-             // universities.js has formats like "Jan 15, 2026" which works with new Date()
              const d = new Date(uniOrName.deadline);
              if (!isNaN(d.getTime())) {
                  deadline = d.toISOString().split('T')[0];
@@ -300,7 +298,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     const app = applications.find(a => a.id === appId);
     if (!app) return;
 
-    // Use existing checklist or fallback to standard if empty (for old apps)
     const currentChecklist = (app.checklist && app.checklist.length > 0) ? app.checklist : standardDocuments.map(d => ({...d, status: 'Pending'}));
 
     const updatedChecklist = currentChecklist.map(doc => 
@@ -344,7 +341,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     }
   };
 
-  // This handleEditSave is for the Dialog
   const handleEditSaveDialog = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -372,7 +368,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     }
   };
 
-  // This handleEditSave is for the Sheet
   const handleEditSaveSheet = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -459,8 +454,6 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     }
   };
 
-  // --- AI & Helpers ---
-
   const handleAiBrainstorm = async () => {
     toast.info("Asking AI for suggestions...");
     try {
@@ -476,841 +469,620 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Accepted': return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800';
-      case 'Rejected': return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800';
-      case 'Applied': return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800';
-      case 'Applying': return 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800';
-      case 'Waitlisted': return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800';
-      case 'Enrolled': return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800';
-      case 'Visa Pending': return 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+      case 'Accepted': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Rejected': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Applied': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Applying': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+      case 'Waitlisted': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Enrolled': return 'bg-purple-100 text-purple-700 border-purple-200';
+      case 'Visa Pending': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="h-[calc(100vh-6rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft size={20} />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{currentStudent.name}</h1>
-          <p className="text-muted-foreground">Application Management Profile</p>
-        </div>
-        <div className="ml-auto flex gap-2">
-          <ModeToggle />
-          <Button variant="outline" className="gap-2" onClick={handleAiBrainstorm}>
-            <Brain size={16} /> AI Brainstorm
+      <div className="flex items-center justify-between mb-6 pb-4 border-b">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onBack}>
+            <ArrowLeft size={18} />
           </Button>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card 
-          className="cursor-pointer hover:border-primary/50 transition-colors bg-card text-card-foreground"
-          onClick={() => setIsEditStatsOpen(true)}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">SAT Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentStudent.sat_score || 'N/A'}</div>
-          </CardContent>
-        </Card>
-        <Card 
-          className="cursor-pointer hover:border-primary/50 transition-colors bg-card text-card-foreground"
-          onClick={() => setIsEditStatsOpen(true)}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">IELTS Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentStudent.ielts_score || 'N/A'}</div>
-          </CardContent>
-        </Card>
-        <Card 
-          className="cursor-pointer hover:border-primary/50 transition-colors bg-card text-card-foreground"
-          onClick={() => setIsEditStatsOpen(true)}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">GPA / Grades</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{currentStudent.gpa || 'N/A'}</div>
-          </CardContent>
-        </Card>
-        <Card 
-          className="cursor-pointer hover:border-primary/50 transition-colors bg-card text-card-foreground"
-          onClick={() => setIsEditStatsOpen(true)}
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Contact</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-sm truncate" title={currentStudent.email}>{currentStudent.email}</div>
-            <div className="text-sm text-muted-foreground">{currentStudent.phone || 'No phone'}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Detailed Profile Info */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-semibold">Student Details</CardTitle>
-          <Button variant="ghost" size="sm" onClick={() => setIsEditStatsOpen(true)}>
-            <Edit size={16} className="mr-2" /> Edit Details
-          </Button>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-12 w-12 border-2 border-background shadow-sm">
+              <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                {currentStudent.name.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Major</Label>
-              <div className="font-medium mt-1">{currentStudent.major || 'Not specified'}</div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Date of Birth</Label>
-              <div className="font-medium mt-1 flex items-center gap-2">
-                <Calendar size={14} className="text-muted-foreground" />
-                {currentStudent.date_of_birth ? new Date(currentStudent.date_of_birth).toLocaleDateString() : 'Not set'}
+              <h1 className="text-xl font-bold tracking-tight">{currentStudent.name}</h1>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Mail size={12} /> {currentStudent.email}
+                <span>•</span>
+                <Badge variant="outline" className="text-xs font-normal">ID: {String(currentStudent.id).substring(0, 8)}</Badge>
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Address</Label>
-              <div className="font-medium mt-1 flex items-center gap-2">
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsEditStatsOpen(true)}>
+            <Edit size={14} className="mr-2" /> Edit Profile
+          </Button>
+          <Button onClick={() => setIsAddUniOpen(true)}>
+            <Plus size={14} className="mr-2" /> New Application
+          </Button>
+        </div>
+      </div>
+
+      {/* 3-Column Layout */}
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0">
+        
+        {/* Left Column: Profile & Stats (3 cols) */}
+        <div className="lg:col-span-3 space-y-6 overflow-y-auto pr-2">
+          <Card className="dashboard-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Contact Info</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center gap-3">
+                <Mail size={14} className="text-muted-foreground" />
+                <span className="truncate">{currentStudent.email}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Phone size={14} className="text-muted-foreground" />
+                <span>{currentStudent.phone || 'No phone'}</span>
+              </div>
+              <div className="flex items-center gap-3">
                 <MapPin size={14} className="text-muted-foreground" />
-                <span className="text-sm">{currentStudent.address || 'No address'}</span>
+                <span>{currentStudent.address || 'No address'}</span>
               </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Education</Label>
-              <div className="font-medium mt-1">
-                <div className="flex items-center gap-2">
-                  <School size={14} className="text-muted-foreground" />
-                  <span className="text-sm font-semibold">{currentStudent.school_name || 'No school listed'}</span>
+              <div className="flex items-center gap-3">
+                <Calendar size={14} className="text-muted-foreground" />
+                <span>{currentStudent.date_of_birth ? new Date(currentStudent.date_of_birth).toLocaleDateString() : 'No DOB'}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="dashboard-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">Academic Profile</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">GPA</p>
+                  <p className="font-semibold">{currentStudent.gpa || '-'}</p>
                 </div>
-                {currentStudent.school_address && (
-                  <div className="text-xs text-muted-foreground ml-6">{currentStudent.school_address}</div>
-                )}
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">SAT</p>
+                  <p className="font-semibold">{currentStudent.sat_score || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">IELTS</p>
+                  <p className="font-semibold">{currentStudent.ielts_score || '-'}</p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Major</p>
+                  <p className="font-semibold truncate" title={currentStudent.major}>{currentStudent.major || '-'}</p>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <School size={14} />
+                  <span className="truncate">{currentStudent.school_name || 'No School'}</span>
+                </div>
                 {currentStudent.course_offered && (
-                  <div className="text-xs text-muted-foreground ml-6 mt-1">Course: {currentStudent.course_offered}</div>
-                )}
-                {(currentStudent.education_start_date || currentStudent.education_end_date) && (
-                  <div className="text-xs text-muted-foreground ml-6">
-                    {currentStudent.education_start_date ? new Date(currentStudent.education_start_date).toLocaleDateString() : '?'} 
-                    {' - '} 
-                    {currentStudent.education_end_date ? new Date(currentStudent.education_end_date).toLocaleDateString() : 'Present'}
-                  </div>
+                  <p className="text-xs text-muted-foreground pl-6">{currentStudent.course_offered}</p>
                 )}
               </div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Portal / Login</Label>
-              <div className="font-medium mt-1 text-sm font-mono bg-muted/50 p-2 rounded">
-                {currentStudent.portal || 'No portal info'}
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Interests</Label>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {currentStudent.interests || 'No interests listed.'}
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground uppercase tracking-wider">Background</Label>
-              <div className="mt-1 text-sm text-muted-foreground">
-                {currentStudent.background || 'No background info.'}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Documents Section */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg font-semibold">Documents</CardTitle>
-          <div className="flex items-center gap-2">
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              onChange={handleFileSelect}
-              disabled={uploading}
-            />
-            <Button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="gap-2"
-            >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              Upload Document
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {documents.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
-              <FileText className="mx-auto h-8 w-8 mb-2 opacity-50" />
-              <p>No documents uploaded yet</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {documents.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors group">
-                  <div className="flex items-center gap-3 overflow-hidden">
-                    <div className="p-2 bg-primary/10 rounded text-primary">
-                      <FileText size={20} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-medium truncate" title={doc.name}>{doc.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {(doc.size / 1024 / 1024).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDownloadDocument(doc)}>
-                      <ExternalLink size={16} />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => handleDeleteDocument(doc)}>
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Applications Table */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">University Applications</h2>
-          <Button onClick={() => setIsAddUniOpen(true)} className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Plus size={16} /> Add University
-          </Button>
+          <Card className="dashboard-card bg-secondary/20 border-dashed">
+             <CardContent className="p-4 flex flex-col items-center text-center space-y-2">
+                <Brain size={24} className="text-purple-500" />
+                <h3 className="font-medium text-sm">AI Insights</h3>
+                <p className="text-xs text-muted-foreground">Get personalized university recommendations based on this profile.</p>
+                <Button variant="outline" size="sm" className="w-full" onClick={handleAiBrainstorm}>Generate</Button>
+             </CardContent>
+          </Card>
         </div>
 
-        <div className="border rounded-lg bg-card shadow-sm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-muted/50 hover:bg-muted/50">
-                <TableHead className="w-[30%] text-muted-foreground">University</TableHead>
-                <TableHead className="text-muted-foreground">Status</TableHead>
-                <TableHead className="text-muted-foreground">Deadline</TableHead>
-                <TableHead className="text-muted-foreground">Documents</TableHead>
-                <TableHead className="text-right text-muted-foreground">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {applications.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                    No applications tracked yet. Add one to get started.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                applications.map((app) => (
-                  <TableRow 
-                    key={app.id} 
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => handleViewApplication(app)}
-                  >
-                    <TableCell className="font-medium text-foreground">
-                      {app.university_name}
-                      {app.notes && <div className="text-xs text-muted-foreground truncate max-w-[200px]">{app.notes}</div>}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Badge className={`cursor-pointer hover:opacity-80 px-2.5 py-0.5 ${getStatusColor(app.status)}`}>
-                            {app.status}
-                          </Badge>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          {['Planning', 'Applying', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
-                             <DropdownMenuItem key={s} onClick={() => handleUpdateStatus(app.id, s)}>{s}</DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                    <TableCell>
-                      {app.deadline ? (
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Calendar size={14} />
-                          {new Date(app.deadline).toLocaleDateString()}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-2">
-                          <FileText size={16} className="text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
-                            {app.checklist ? app.checklist.filter(d => d.status === 'Received' || d.status === 'Submitted').length : 0}
-                            <span className="text-muted-foreground/50"> / </span>
-                            {app.checklist ? app.checklist.length : 0}
-                          </span>
-                        </div>
-                        {app.checklist && app.checklist.length > 0 && (
-                          <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-emerald-500" 
-                              style={{ width: `${(app.checklist.filter(d => d.status === 'Received' || d.status === 'Submitted').length / app.checklist.length) * 100}%` }}
-                            />
-                          </div>
-                        )}
+        {/* Center Column: Activity & Notes (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col space-y-6 min-h-0">
+          <Card className="dashboard-card flex-1 flex flex-col min-h-0">
+            <CardHeader className="pb-3 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <MessageSquare size={16} /> Notes & Activity
+                </CardTitle>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Plus size={14} />
+                </Button>
+              </div>
+            </CardHeader>
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-6">
+                {/* Mock Activity Feed */}
+                <div className="flex gap-3">
+                  <div className="mt-1">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback>SY</AvatarFallback>
+                    </Avatar>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">System</span>
+                      <span className="text-xs text-muted-foreground">Today at 9:41 AM</span>
+                    </div>
+                    <p className="text-sm text-foreground">Created student profile.</p>
+                  </div>
+                </div>
+
+                {currentStudent.background && (
+                   <div className="flex gap-3">
+                    <div className="mt-1">
+                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <User size={14} />
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
-                            <MoreVertical size={16} />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewApplication(app)}>
-                            <ExternalLink className="mr-2 h-4 w-4" /> View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => { setSelectedApp(app); setIsEditAppOpen(true); }}>
-                            <Edit className="mr-2 h-4 w-4" /> Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600" onClick={() => handleDeleteApplication(app.id)}>
-                            <Trash2 className="mr-2 h-4 w-4" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Bio</span>
+                        <span className="text-xs text-muted-foreground">Background Info</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground bg-secondary/50 p-3 rounded-md">
+                        {currentStudent.background}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {currentStudent.interests && (
+                   <div className="flex gap-3">
+                    <div className="mt-1">
+                      <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <Star size={14} />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">Interests</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {currentStudent.interests}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+            <div className="p-4 border-t bg-secondary/10">
+              <div className="flex gap-2">
+                <Input placeholder="Add a note..." className="bg-background" />
+                <Button size="icon"><Send size={14} /></Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Applications & Documents (4 cols) */}
+        <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-2">
+          {/* Applications List */}
+          <Card className="dashboard-card">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Briefcase size={16} /> Applications
+                <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0.5 text-[10px]">{applications.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {applications.length === 0 ? (
+                  <div className="p-6 text-center text-muted-foreground text-sm">No applications yet.</div>
+                ) : (
+                  applications.map((app) => (
+                    <div 
+                      key={app.id} 
+                      className="p-3 hover:bg-secondary/50 transition-colors cursor-pointer group"
+                      onClick={() => handleViewApplication(app)}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="font-medium text-sm group-hover:text-primary transition-colors">{app.university_name}</span>
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-5 ${getStatusColor(app.status)}`}>
+                          {app.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>{app.deadline ? new Date(app.deadline).toLocaleDateString() : 'No Deadline'}</span>
+                        <div className="flex items-center gap-1">
+                          <CheckCircle2 size={12} />
+                          <span>{app.checklist ? app.checklist.filter(d => d.status === 'Received' || d.status === 'Submitted').length : 0}/{app.checklist ? app.checklist.length : 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Documents List */}
+          <Card className="dashboard-card">
+            <CardHeader className="pb-3 flex flex-row items-center justify-between">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Paperclip size={16} /> Documents
+                <Badge variant="secondary" className="ml-1 rounded-full px-1.5 py-0.5 text-[10px]">{documents.length}</Badge>
+              </CardTitle>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => fileInputRef.current?.click()}>
+                <Plus size={14} />
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileSelect}
+                disabled={uploading}
+              />
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {documents.length === 0 ? (
+                  <div className="p-6 text-center text-muted-foreground text-sm">No documents uploaded.</div>
+                ) : (
+                  documents.map((doc) => (
+                    <div key={doc.id} className="p-3 flex items-center justify-between group hover:bg-secondary/50 transition-colors">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="h-8 w-8 rounded bg-blue-50 flex items-center justify-center text-blue-600 flex-shrink-0">
+                          <FileText size={14} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate cursor-pointer hover:underline" onClick={() => handleDownloadDocument(doc)}>{doc.name}</p>
+                          <p className="text-xs text-muted-foreground">{(doc.size / 1024 / 1024).toFixed(2)} MB • {new Date(doc.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive" onClick={() => handleDeleteDocument(doc)}>
+                        <Trash2 size={12} />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Add University Dialog */}
-      <Dialog open={isAddUniOpen} onOpenChange={setIsAddUniOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+      {/* Dialogs & Sheets (Keep existing logic, just ensure they render) */}
+      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add University</DialogTitle>
-            <DialogDescription>Select from our database or add a custom one.</DialogDescription>
+            <DialogTitle>Upload Document</DialogTitle>
+            <DialogDescription>Enter a name for your document.</DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto p-1">
-            <Button 
-              variant="outline" 
-              className="justify-start h-auto py-3 px-4 border-dashed"
-              onClick={() => setIsCustomUniOpen(true)}
-            >
-              <div className="text-left">
-                <div className="font-semibold flex items-center gap-2"><Plus size={14}/> Add Custom</div>
-                <div className="text-xs text-muted-foreground">Manually enter name</div>
-              </div>
-            </Button>
-            {universities.map(uni => (
-              <Button 
-                key={uni.id} 
-                variant="outline" 
-                className="justify-start h-auto py-3 px-4"
-                onClick={() => handleAddApplication(uni)}
-              >
-                <div className="text-left w-full">
-                  <div className="font-semibold truncate">{uni.name}</div>
-                  <div className="text-xs text-muted-foreground truncate">{uni.location}</div>
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                     {uni.deadline && <span className="bg-slate-100 px-1 rounded">📅 {uni.deadline.split(',')[0]}</span>}
-                     {uni.tuition && <span className="bg-slate-100 px-1 rounded">💰 {uni.tuition.split(' ')[0]}</span>}
-                  </div>
-                </div>
-              </Button>
-            ))}
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">Name</Label>
+              <Input id="name" value={uploadName} onChange={(e) => setUploadName(e.target.value)} className="col-span-3" />
+            </div>
           </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleUploadConfirm} disabled={!uploadName || uploading}>
+              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Upload
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Custom University Dialog */}
-      <Dialog open={isCustomUniOpen} onOpenChange={setIsCustomUniOpen}>
+      <Dialog open={isAddUniOpen} onOpenChange={setIsAddUniOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add Custom University</DialogTitle>
-            <DialogDescription>Enter the name of the university.</DialogDescription>
+            <DialogTitle>Add University Application</DialogTitle>
+            <DialogDescription>Select a university from our database or add a custom one.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCustomSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">University Name</Label>
-              <Input id="name" name="name" placeholder="e.g. Harvard University" required />
+          {!isCustomUniOpen ? (
+            <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+              <div className="grid gap-2">
+                {universities.map(uni => (
+                  <Button key={uni.id} variant="outline" className="justify-start" onClick={() => handleAddApplication(uni)}>
+                    <School className="mr-2 h-4 w-4" />
+                    {uni.name}
+                  </Button>
+                ))}
+                <Button variant="ghost" onClick={() => setIsCustomUniOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Custom University
+                </Button>
+              </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsCustomUniOpen(false)}>Cancel</Button>
-              <Button type="submit">Add Application</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Application Dialog */}
-      <Dialog open={isEditAppOpen} onOpenChange={setIsEditAppOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Edit Application</DialogTitle>
-          </DialogHeader>
-          {selectedApp && (
-            <form onSubmit={handleEditSaveDialog} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="university_name">University Name</Label>
-                <Input id="university_name" name="university_name" defaultValue={selectedApp.university_name} required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deadline">Application Deadline</Label>
-                <Input id="deadline" name="deadline" type="date" defaultValue={selectedApp.deadline} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" placeholder="Any notes..." defaultValue={selectedApp.notes} />
+          ) : (
+            <form onSubmit={handleCustomSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">Name</Label>
+                  <Input id="name" name="name" className="col-span-3" required />
+                </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsEditAppOpen(false)}>Cancel</Button>
-                <Button type="submit">Save Changes</Button>
+                <Button type="button" variant="ghost" onClick={() => setIsCustomUniOpen(false)}>Back</Button>
+                <Button type="submit">Add Application</Button>
               </DialogFooter>
             </form>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Edit Stats Dialog */}
       <Dialog open={isEditStatsOpen} onOpenChange={setIsEditStatsOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Profile & Stats</DialogTitle>
-            <DialogDescription>Update student academic, contact, and personal info.</DialogDescription>
+            <DialogTitle>Edit Student Profile</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleStatsSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="sat_score">SAT Score</Label>
-                <Input id="sat_score" name="sat_score" defaultValue={currentStudent.sat_score} placeholder="e.g. 1450" />
+                <Label>SAT Score</Label>
+                <Input name="sat_score" defaultValue={currentStudent.sat_score} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="ielts_score">IELTS Score</Label>
-                <Input id="ielts_score" name="ielts_score" defaultValue={currentStudent.ielts_score} placeholder="e.g. 7.5" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="gpa">GPA / Grades</Label>
-                <Input id="gpa" name="gpa" defaultValue={currentStudent.gpa} placeholder="e.g. 3.8 or 95%" />
+                <Label>IELTS Score</Label>
+                <Input name="ielts_score" defaultValue={currentStudent.ielts_score} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" defaultValue={currentStudent.phone} placeholder="+1..." />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="major">Intended Major</Label>
-                <Input id="major" name="major" defaultValue={currentStudent.major} placeholder="e.g. Computer Science" />
+                <Label>GPA</Label>
+                <Input name="gpa" defaultValue={currentStudent.gpa} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Date of Birth</Label>
-                <Input id="date_of_birth" name="date_of_birth" type="date" defaultValue={currentStudent.date_of_birth} />
+                <Label>Phone</Label>
+                <Input name="phone" defaultValue={currentStudent.phone} />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" defaultValue={currentStudent.address} placeholder="e.g. 123 Main St" />
+              <div className="space-y-2 col-span-2">
+                <Label>Address</Label>
+                <Input name="address" defaultValue={currentStudent.address} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="school_name">School / University</Label>
-                <Input id="school_name" name="school_name" defaultValue={currentStudent.school_name} placeholder="e.g. Lincoln High" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="school_address">School Address</Label>
-              <Input id="school_address" name="school_address" defaultValue={currentStudent.school_address} placeholder="e.g. 456 School Ave" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="course_offered">Course / Program</Label>
-              <Input id="course_offered" name="course_offered" defaultValue={currentStudent.course_offered} placeholder="e.g. IB Diploma, A-Levels" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="education_start_date">Start Date</Label>
-                <Input id="education_start_date" name="education_start_date" type="date" defaultValue={currentStudent.education_start_date} />
+                <Label>Date of Birth</Label>
+                <Input name="date_of_birth" type="date" defaultValue={currentStudent.date_of_birth} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="education_end_date">End Date (Expected)</Label>
-                <Input id="education_end_date" name="education_end_date" type="date" defaultValue={currentStudent.education_end_date} />
+                <Label>Major</Label>
+                <Input name="major" defaultValue={currentStudent.major} />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="portal">Portal / Login Details</Label>
-              <Input id="portal" name="portal" defaultValue={currentStudent.portal} placeholder="e.g. URL or Username" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="interests">Interests</Label>
-              <Textarea id="interests" name="interests" defaultValue={currentStudent.interests} placeholder="e.g. Robotics, Debate, Piano" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="background">Background / Bio</Label>
-              <Textarea id="background" name="background" defaultValue={currentStudent.background} placeholder="Brief background..." />
+              <div className="space-y-2">
+                <Label>Portal Login</Label>
+                <Input name="portal" defaultValue={currentStudent.portal} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>School Name</Label>
+                <Input name="school_name" defaultValue={currentStudent.school_name} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>School Address</Label>
+                <Input name="school_address" defaultValue={currentStudent.school_address} />
+              </div>
+              <div className="space-y-2">
+                <Label>Course Offered</Label>
+                <Input name="course_offered" defaultValue={currentStudent.course_offered} />
+              </div>
+              <div className="grid grid-cols-2 gap-2 col-span-2">
+                 <div className="space-y-2">
+                    <Label>Start Date</Label>
+                    <Input name="education_start_date" type="date" defaultValue={currentStudent.education_start_date} />
+                 </div>
+                 <div className="space-y-2">
+                    <Label>End Date</Label>
+                    <Input name="education_end_date" type="date" defaultValue={currentStudent.education_end_date} />
+                 </div>
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Interests</Label>
+                <Textarea name="interests" defaultValue={currentStudent.interests} />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label>Background</Label>
+                <Textarea name="background" defaultValue={currentStudent.background} />
+              </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditStatsOpen(false)}>Cancel</Button>
               <Button type="submit">Save Changes</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Upload Dialog */}
-      <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Upload Document</DialogTitle>
-            <DialogDescription>
-              Enter a name for this document.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="doc-name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="doc-name"
-                value={uploadName}
-                onChange={(e) => setUploadName(e.target.value)}
-                className="col-span-3"
-              />
-            </div>
-            {uploadFile && (
-              <div className="text-sm text-muted-foreground text-center">
-                File: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleUploadConfirm} disabled={!uploadName || uploading}>
-              {uploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Upload
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Application Detail Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto">
+        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
           {viewApp && (
             <>
               <SheetHeader className="mb-6">
-                <div className="flex items-start justify-between">
-                  {isEditingApp ? (
-                     <div className="w-full">
-                       <SheetTitle>Edit Application</SheetTitle>
-                       <form id="sheet-edit-form" onSubmit={handleEditSaveSheet} className="space-y-4 mt-4">
-                         <div className="space-y-2">
-                           <Label htmlFor="sheet_uni_name">University Name</Label>
-                           <Input id="sheet_uni_name" name="university_name" defaultValue={viewApp.university_name} required />
-                         </div>
-                         <div className="grid grid-cols-2 gap-4">
-                           <div className="space-y-2">
-                             <Label htmlFor="sheet_deadline">Deadline</Label>
-                             <Input id="sheet_deadline" name="deadline" type="date" defaultValue={viewApp.deadline} />
-                           </div>
-                           <div className="space-y-2">
-                             <Label htmlFor="sheet_status">Status</Label>
-                             <select 
-                               id="sheet_status" 
-                               name="status" 
-                               defaultValue={viewApp.status}
-                               className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                             >
-                               {['Planning', 'Applying', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
-                                 <option key={s} value={s}>{s}</option>
-                               ))}
-                             </select>
-                           </div>
-                         </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="sheet_program">Program Applied</Label>
-                            <Input id="sheet_program" name="program" defaultValue={viewApp.program} placeholder="e.g. Computer Science (Co-op)" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="sheet_notes">Notes</Label>
-                            <Textarea id="sheet_notes" name="notes" defaultValue={viewApp.notes} />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="sheet_essay">Supplementary Essay</Label>
-                            <Textarea id="sheet_essay" name="supplementary_essay" defaultValue={viewApp.supplementary_essay} placeholder="Draft or notes on essay..." className="min-h-[100px]" />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="sheet_bio">Bio Info / Personal Statement</Label>
-                            <Textarea id="sheet_bio" name="bio_info" defaultValue={viewApp.bio_info} placeholder="Key points for bio..." className="min-h-[100px]" />
-                          </div>
-
-                          {/* Dynamic Custom Fields */}
-                          <div className="space-y-2 border-t pt-4">
-                            <div className="flex items-center justify-between">
-                              <Label>Custom Fields</Label>
-                              <Button type="button" variant="outline" size="sm" onClick={handleAddCustomField}>
-                                <Plus size={12} className="mr-1" /> Add Field
-                              </Button>
-                            </div>
-                            {customFields.map((field, index) => (
-                              <div key={index} className="flex gap-2 items-start">
-                                <Input 
-                                  placeholder="Title (e.g. Scholarship Link)" 
-                                  value={field.key} 
-                                  onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
-                                  className="w-1/3"
-                                />
-                                <Input 
-                                  placeholder="Value" 
-                                  value={field.value} 
-                                  onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
-                                  className="flex-1"
-                                />
-                                <Button type="button" variant="ghost" size="icon" onClick={() => handleDeleteCustomField(index)}>
-                                  <Trash2 size={16} className="text-red-500" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-
-                          <div className="flex gap-2 justify-end pt-2">
-                            <Button type="button" variant="outline" onClick={() => setIsEditingApp(false)}>Cancel</Button>
-                            <Button type="submit">Save Changes</Button>
-                          </div>
-                        </form>
-                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <SheetTitle className="text-2xl">{viewApp.university_name}</SheetTitle>
-                        <SheetDescription className="mt-1">
-                          Application Details & Insights
-                        </SheetDescription>
-                      </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Badge className={`text-sm px-3 py-1 ${getStatusColor(viewApp.status)}`}>
-                          {viewApp.status}
-                        </Badge>
-                        <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => {
-                          setCustomFields(viewApp.custom_fields || []);
-                          setIsEditingApp(true);
-                        }}>
-                          <Edit size={12} /> Edit
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="text-xl">{viewApp.university_name}</SheetTitle>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="icon" onClick={() => setIsEditingApp(!isEditingApp)}>
+                      <Edit size={16} />
+                    </Button>
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteApplication(viewApp.id)}>
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </div>
+                <SheetDescription>
+                  Application Status: <Badge variant="outline" className={getStatusColor(viewApp.status)}>{viewApp.status}</Badge>
+                </SheetDescription>
               </SheetHeader>
 
-              {!isEditingApp && (
-              <Tabs defaultValue="details" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="details">Application</TabsTrigger>
-                  <TabsTrigger value="university" disabled={!viewUni}>University Info</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="details" className="space-y-6">
-                  {/* Key Dates & Info */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Deadline</Label>
-                      <div className="flex items-center gap-2 font-medium">
-                        <Calendar size={16} className="text-muted-foreground" />
-                        {viewApp.deadline ? new Date(viewApp.deadline).toLocaleDateString() : 'Not set'}
-                      </div>
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Created</Label>
-                      <div className="text-sm text-muted-foreground">
-                        {new Date(viewApp.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
+              {isEditingApp ? (
+                <form onSubmit={handleEditSaveSheet} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>University Name</Label>
+                    <Input name="university_name" defaultValue={viewApp.university_name} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <select name="status" defaultValue={viewApp.status} className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                      {['Planning', 'Applying', 'Applied', 'Accepted', 'Waitlisted', 'Rejected', 'Enrolled', 'Visa Pending'].map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Program / Major</Label>
+                    <Input name="program" defaultValue={viewApp.program} placeholder="e.g. Computer Science" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Deadline</Label>
+                    <Input name="deadline" type="date" defaultValue={viewApp.deadline ? viewApp.deadline.split('T')[0] : ''} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Supplementary Essay</Label>
+                    <Textarea name="supplementary_essay" defaultValue={viewApp.supplementary_essay} placeholder="Paste essay draft or notes here..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Bio / Additional Info</Label>
+                    <Textarea name="bio_info" defaultValue={viewApp.bio_info} placeholder="Any specific details for this application..." />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Notes</Label>
+                    <Textarea name="notes" defaultValue={viewApp.notes} />
                   </div>
 
-                  {/* Program Info */}
-                  <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">Program</Label>
-                    <div className="font-medium">{viewApp.program || 'Not specified'}</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Custom Fields</Label>
+                      <Button type="button" variant="ghost" size="sm" onClick={handleAddCustomField}>
+                        <Plus size={14} className="mr-1" /> Add Field
+                      </Button>
+                    </div>
+                    {customFields.map((field, index) => (
+                      <div key={index} className="flex gap-2 items-start">
+                        <Input 
+                          placeholder="Field Name" 
+                          value={field.key} 
+                          onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
+                        />
+                        <Input 
+                          placeholder="Value" 
+                          value={field.value} 
+                          onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
+                        />
+                        <Button type="button" variant="ghost" size="icon" onClick={() => handleDeleteCustomField(index)}>
+                          <Trash2 size={14} className="text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Essays & Bio */}
-                  {(viewApp.supplementary_essay || viewApp.bio_info) && (
-                    <div className="grid grid-cols-1 gap-4">
-                      {viewApp.supplementary_essay && (
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Supplementary Essay</Label>
-                          <div className="bg-muted/30 p-3 rounded-md text-sm whitespace-pre-wrap">{viewApp.supplementary_essay}</div>
-                        </div>
-                      )}
-                      {viewApp.bio_info && (
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Bio Info</Label>
-                          <div className="bg-muted/30 p-3 rounded-md text-sm whitespace-pre-wrap">{viewApp.bio_info}</div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex justify-end gap-2 pt-4">
+                    <Button type="button" variant="ghost" onClick={() => setIsEditingApp(false)}>Cancel</Button>
+                    <Button type="submit">Save Changes</Button>
+                  </div>
+                </form>
+              ) : (
+                  <div className="space-y-6">
+                    {/* View Mode Content */}
+                    {viewUni && (
+                      <Card className="bg-primary/5 border-primary/20 shadow-sm">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-base font-semibold flex items-center gap-2 text-primary">
+                            <School size={18} /> University Details
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Location</span>
+                              <div className="font-medium">{viewUni.location}</div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Ranking</span>
+                              <div className="font-medium">#{viewUni.ranking}</div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Tuition</span>
+                              <div className="font-medium">{viewUni.tuition}</div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Acceptance</span>
+                              <div className="font-medium">{viewUni.acceptanceRate}</div>
+                            </div>
+                          </div>
 
-                  {/* Custom Fields Display */}
-                  {viewApp.custom_fields && viewApp.custom_fields.length > 0 && (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Additional Info</Label>
-                      <div className="grid grid-cols-1 gap-2">
-                        {viewApp.custom_fields.map((field, idx) => (
-                          <div key={idx} className="bg-muted/30 p-2 rounded-md text-sm flex flex-col">
-                            <span className="font-semibold text-xs text-muted-foreground">{field.key}</span>
-                            <span>{field.value}</span>
+                          {viewUni.scholarships && viewUni.scholarships.length > 0 && (
+                            <div className="pt-2 border-t border-dashed">
+                              <div className="text-xs font-semibold flex items-center gap-1 text-blue-600 mb-2">
+                                <GraduationCap size={12} /> Scholarships
+                              </div>
+                              <div className="space-y-2">
+                                {viewUni.scholarships.map((s, i) => (
+                                  <div key={i} className="text-xs bg-blue-50/50 p-2 rounded border border-blue-100">
+                                    <div className="font-medium text-blue-900">{s.name}</div>
+                                    <div className="text-blue-700">{s.value}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {viewUni.insights && (
+                            <div className="pt-2 border-t border-dashed">
+                              <div className="text-xs font-semibold flex items-center gap-1 text-amber-600 mb-2">
+                                <Lightbulb size={12} /> Insights
+                              </div>
+                              <div className="text-xs text-amber-900/90 bg-amber-50/50 p-2 rounded border border-amber-100">
+                                {viewUni.insights}
+                              </div>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <div className="space-y-4">
+                      <h3 className="font-semibold flex items-center gap-2 text-lg">
+                        <CheckCircle2 size={20} className="text-primary" /> Application Checklist
+                      </h3>
+                      <div className="space-y-2">
+                        {(viewApp.checklist && viewApp.checklist.length > 0 ? viewApp.checklist : standardDocuments).map((doc) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors bg-card shadow-sm">
+                            <div className="flex items-center gap-3">
+                              <div className={`p-2 rounded-full ${
+                                doc.status === 'Received' ? 'bg-green-100 text-green-700' :
+                                doc.status === 'Submitted' ? 'bg-blue-100 text-blue-700' :
+                                'bg-slate-100 text-slate-500'
+                              }`}>
+                                {doc.status === 'Received' ? <CheckCircle2 size={16} /> : 
+                                 doc.status === 'Submitted' ? <Send size={16} /> : 
+                                 <Clock size={16} />}
+                              </div>
+                              <div>
+                                <div className="text-sm font-semibold ">{doc.name || doc.label}</div>
+                                {doc.date && <div className="text-xs ">{new Date(doc.date).toLocaleDateString()}</div>}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 text-xs font-medium">
+                                  {doc.status}
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleToggleDocStatus(viewApp.id, doc.id, 'Pending')}>
+                                  Mark Pending
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleDocStatus(viewApp.id, doc.id, 'Submitted')}>
+                                  Mark Submitted
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleToggleDocStatus(viewApp.id, doc.id, 'Received')}>
+                                  Mark Received
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         ))}
                       </div>
                     </div>
-                  )}
-
-                  {/* Notes */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground uppercase tracking-wider">My Notes</Label>
-                    <div className="bg-muted/50 p-3 rounded-md text-sm text-foreground min-h-[80px] border">
-                      {viewApp.notes || "No notes added yet."}
-                    </div>
                   </div>
-
-                  {/* Documents */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs text-muted-foreground uppercase tracking-wider">Documents</Label>
-                      <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => {
-                        // Re-using the prompt logic for now, could be improved
-                        const name = prompt("Document Name:");
-                        if (name) {
-                           // Logic to add doc needs to be accessible here or passed down
-                           // For simplicity, we'll just show a toast that this is available in the main view
-                           toast.info("Please add documents from the main list view for now.");
-                        }
-                      }}>
-                        <Plus size={12} className="mr-1" /> Add
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      {/* Use checklist if available, otherwise show empty state or fallback */}
-                      {(!viewApp.checklist || viewApp.checklist.length === 0) ? (
-                         <div className="text-sm text-muted-foreground italic p-2 border border-dashed rounded">
-                           No standard documents initialized. 
-                           <Button variant="link" className="h-auto p-0 ml-2" onClick={() => {
-                             // Initialize for old apps
-                             const initChecklist = standardDocuments.map(d => ({...d, status: 'Pending'}));
-                             supabase.from('applications').update({ checklist: initChecklist }).eq('id', viewApp.id).then(({ error }) => {
-                               if (!error) {
-                                 const updated = { ...viewApp, checklist: initChecklist };
-                                 setViewApp(updated);
-                                 setApplications(apps => apps.map(a => a.id === viewApp.id ? updated : a));
-                               }
-                             });
-                           }}>Initialize Standard List</Button>
-                         </div>
-                      ) : (
-                        viewApp.checklist.map((doc) => (
-                          <div key={doc.id} className="flex items-center justify-between p-3 bg-card border rounded-lg shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className={`p-2 rounded ${doc.status === 'Received' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-muted'}`}>
-                                <FileText size={16} className={doc.status === 'Received' ? 'text-green-700 dark:text-green-400' : 'text-muted-foreground'} />
-                              </div>
-                              <div>
-                                <div className="font-medium text-sm">{doc.label}</div>
-                                <div className="text-xs text-muted-foreground">
-                                  {doc.required ? <span className="text-amber-600 dark:text-amber-500 font-medium mr-1">Required</span> : "Optional"}
-                                  {doc.note && <span className="opacity-75">• {doc.note}</span>}
-                                </div>
-                              </div>
-                            </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className={`h-7 text-xs min-w-[80px] ${
-                                doc.status === 'Submitted' ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800' :
-                                doc.status === 'Received' ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800' :
-                                'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800'
-                              }`}
-                              onClick={() => handleToggleDocStatus(viewApp.id, doc.id, doc.status || 'Pending')}
-                            >
-                              {doc.status || 'Pending'}
-                            </Button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="university" className="space-y-6">
-                  {viewUni && (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Location</Label>
-                          <div className="flex items-center gap-2 text-sm">
-                            <MapPin size={16} className="text-muted-foreground" />
-                            {viewUni.location}
-                          </div>
-                        </div>
-                        <div className="space-y-1">
-                          <Label className="text-xs text-muted-foreground uppercase tracking-wider">Tuition</Label>
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign size={16} className="text-muted-foreground" />
-                            {viewUni.tuition}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Application Fee</Label>
-                        <div className="text-sm">{viewUni.appFee}</div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Scholarships</Label>
-                        <div className="space-y-2">
-                          {viewUni.scholarships?.map((sch, i) => (
-                            <div key={i} className="bg-emerald-50/50 border border-emerald-100 p-3 rounded-md dark:bg-emerald-900/10 dark:border-emerald-800">
-                              <div className="font-semibold text-emerald-900 dark:text-emerald-400 text-sm">{sch.name}</div>
-                              <div className="text-xs font-medium text-emerald-700 dark:text-emerald-500 mt-0.5">{sch.value}</div>
-                              <div className="text-xs text-emerald-600/80 dark:text-emerald-600 mt-1">{sch.notes}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs text-muted-foreground uppercase tracking-wider">Insights</Label>
-                        <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md whitespace-pre-line">
-                          {viewUni.insights}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </TabsContent>
-              </Tabs>
               )}
-
-              <SheetFooter className="mt-8">
-                 <Button variant="outline" className="w-full" onClick={() => setIsSheetOpen(false)}>Close</Button>
-              </SheetFooter>
             </>
           )}
         </SheetContent>
@@ -1318,4 +1090,3 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
     </div>
   );
 }
-

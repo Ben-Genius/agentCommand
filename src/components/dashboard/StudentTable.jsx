@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Edit, Trash2, Bot, Send, Search, Plus, Filter, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { 
+  MoreHorizontal, 
+  Search, 
+  Filter, 
+  Download, 
+  Plus, 
+  Trash2, 
+  FileText, 
+  Bot, 
+  Bell, 
+  ChevronRight,
+  ArrowUpDown,
+  Eye
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -13,42 +24,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const STATUS_COLORS = {
-  "Not Started": "bg-gray-100 text-gray-600",
-  "Drafting": "bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80",
-  "Reviewing": "bg-yellow-100 text-yellow-700 hover:bg-yellow-100/80",
-  "Submitted": "bg-green-100 text-green-700 hover:bg-green-100/80",
-  "Accepted": "bg-teal-100 text-teal-700 hover:bg-teal-100/80",
-  "Visa Pending": "bg-purple-100 text-purple-700 hover:bg-purple-100/80",
-  "Complete": "bg-emerald-100 text-emerald-700 hover:bg-emerald-100/80",
-};
-
-const DOCS_COLORS = {
-  "Missing": "border-red-200 text-red-700 bg-red-50",
-  "Partial": "border-orange-200 text-orange-700 bg-orange-50",
-  "Collected": "border-blue-200 text-blue-700 bg-blue-50",
-  "Verified": "border-green-200 text-green-700 bg-green-50",
-};
-
-const getProgress = (status) => {
-  if (status === "Not Started") return 5;
-  if (status === "Drafting") return 25;
-  if (status === "Reviewing") return 50;
-  if (status === "Submitted") return 75;
-  if (status === "Accepted") return 90;
-  if (status === "Visa Pending") return 95;
-  if (status === "Complete") return 100;
-  return 0;
-};
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function StudentTable({ 
   students, 
@@ -58,211 +45,245 @@ export default function StudentTable({
   onDelete, 
   onNotify, 
   onGenerateReport,
-  onAdd
+  onAdd 
 }) {
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [docsFilter, setDocsFilter] = useState("all");
-  const [uniFilter, setUniFilter] = useState("all");
-  const [programFilter, setProgramFilter] = useState("all");
+  const navigate = useNavigate();
+  const [selectedRows, setSelectedRows] = useState({});
+  const [statusFilter, setStatusFilter] = useState([]);
 
-  // Extract unique universities and programs for filters
-  const allUniversities = Array.from(new Set(students.flatMap(s => s.applications?.map(app => app.university_name) || []))).sort();
-  const allPrograms = Array.from(new Set(students.map(s => s.major).filter(Boolean))).sort();
-
-  const filteredStudents = students.filter(s => {
-    const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          s.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-    const matchesDocs = docsFilter === "all" || s.docs === docsFilter;
-    const matchesUni = uniFilter === "all" || s.applications?.some(app => app.university_name === uniFilter);
-    const matchesProgram = programFilter === "all" || s.major === programFilter;
-    
-    return matchesSearch && matchesStatus && matchesDocs && matchesUni && matchesProgram;
-  });
-
-  const clearFilters = () => {
-    setStatusFilter("all");
-    setDocsFilter("all");
-    setUniFilter("all");
-    setProgramFilter("all");
-    setSearchTerm("");
+  const toggleSelectAll = () => {
+    if (Object.keys(selectedRows).length === filteredStudents.length) {
+      setSelectedRows({});
+    } else {
+      const newSelected = {};
+      filteredStudents.forEach(s => newSelected[s.id] = true);
+      setSelectedRows(newSelected);
+    }
   };
 
-  const hasActiveFilters = statusFilter !== "all" || docsFilter !== "all" || uniFilter !== "all" || programFilter !== "all" || searchTerm !== "";
+  const toggleSelectRow = (id, e) => {
+    e.stopPropagation();
+    setSelectedRows(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const handleRowClick = (studentId) => {
+    navigate(`/dashboard/student/${studentId}`);
+  };
+
+  const filteredStudents = students.filter(student => {
+    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(student.status);
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Accepted': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Rejected': return 'bg-red-100 text-red-700 border-red-200';
+      case 'Applied': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Waitlisted': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Visa Pending': return 'bg-orange-100 text-orange-700 border-orange-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-wrap">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search students..."
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {Object.keys(STATUS_COLORS).map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={docsFilter} onValueChange={setDocsFilter}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Documents" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Docs</SelectItem>
-                {Object.keys(DOCS_COLORS).map(doc => (
-                  <SelectItem key={doc} value={doc}>{doc}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={uniFilter} onValueChange={setUniFilter}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="University" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Universities</SelectItem>
-                {allUniversities.map(uni => (
-                  <SelectItem key={uni} value={uni}>{uni}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select value={programFilter} onValueChange={setProgramFilter}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Program" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Programs</SelectItem>
-                {allPrograms.map(prog => (
-                  <SelectItem key={prog} value={prog}>{prog}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {hasActiveFilters && (
-              <Button variant="ghost" size="icon" onClick={clearFilters} title="Clear Filters">
-                <X size={16} className="text-muted-foreground" />
-              </Button>
-            )}
+    <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Toolbar */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center bg-card p-4 rounded-lg border shadow-sm">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-secondary/50 border-transparent focus:bg-background focus:border-input transition-all"
+            />
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="shrink-0">
+                <Filter size={16} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {['Planning', 'Applied', 'Accepted', 'Rejected', 'Waitlisted', 'Visa Pending'].map(status => (
+                <DropdownMenuCheckboxItem
+                  key={status}
+                  checked={statusFilter.includes(status)}
+                  onCheckedChange={(checked) => {
+                    setStatusFilter(prev => checked ? [...prev, status] : prev.filter(s => s !== status));
+                  }}
+                >
+                  {status}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          <Button onClick={onAdd} className="w-full sm:w-auto gap-2">
-            <Plus size={16} /> Add Student
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          {Object.keys(selectedRows).length > 0 && (
+            <div className="flex items-center gap-2 mr-2 animate-in fade-in slide-in-from-right-4 duration-200">
+              <span className="text-sm text-muted-foreground hidden sm:inline-block">
+                {Object.keys(selectedRows).length} selected
+              </span>
+              <Button variant="destructive" size="sm" className="h-8">
+                <Trash2 size={14} className="mr-2" /> Delete
+              </Button>
+            </div>
+          )}
+          <Button variant="outline" size="sm" className="h-9">
+            <Download size={14} className="mr-2" /> Export
+          </Button>
+          <Button size="sm" className="h-9" onClick={onAdd}>
+            <Plus size={14} className="mr-2" /> Add Student
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            <span>All Students</span>
-            <span className="text-sm font-normal text-muted-foreground">
-              {filteredStudents.length} {filteredStudents.length === 1 ? 'student' : 'students'} found
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
+      {/* Table */}
+      <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+        <Table className="table-dense">
+          <TableHeader className="bg-secondary/30">
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[40px]">
+                <Checkbox 
+                  checked={Object.keys(selectedRows).length === filteredStudents.length && filteredStudents.length > 0}
+                  onCheckedChange={toggleSelectAll}
+                />
+              </TableHead>
+              <TableHead className="w-[250px]">
+                <div className="flex items-center gap-1 cursor-pointer hover:text-foreground">
+                  Student <ArrowUpDown size={12} />
+                </div>
+              </TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Applications</TableHead>
+              <TableHead>Progress</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredStudents.length === 0 ? (
               <TableRow>
-                <TableHead>Student</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Universities</TableHead>
-                <TableHead>Docs</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Search className="h-8 w-8 opacity-20" />
+                    <p>No students found matching your criteria.</p>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => (
-                  <TableRow key={student.id}>
-                    <TableCell>
-                      <Link 
-                        to={`/dashboard/student/${student.id}`}
-                        className="block hover:bg-slate-50 -m-2 p-2 rounded transition-colors group cursor-pointer"
-                      >
-                        <div className="font-medium text-emerald-700 group-hover:text-emerald-900">{student.name}</div>
-                        <div className="text-sm text-muted-foreground">{student.email}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{student.portal}</div>
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-2">
-                        <Badge variant="secondary" className={STATUS_COLORS[student.status]}>
-                          {student.status}
-                        </Badge>
-                        <Progress value={getProgress(student.status)} className="h-1.5 w-24" />
+            ) : (
+              filteredStudents.map((student) => (
+                <TableRow 
+                  key={student.id} 
+                  className="group transition-colors hover:bg-secondary/20 cursor-pointer"
+                  onClick={() => handleRowClick(student.id)}
+                >
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox 
+                      checked={!!selectedRows[student.id]}
+                      onCheckedChange={(checked) => toggleSelectRow(student.id, { stopPropagation: () => {} })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9 border shadow-sm">
+                        <AvatarFallback className="text-xs bg-primary/10 text-primary font-medium">
+                          {student.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                          {student.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{student.email}</div>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm font-medium">{student.major}</div>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {student.applications && student.applications.length > 0 ? (
-                          <>
-                            {student.applications.slice(0, 2).map((app, i) => (
-                              <Badge key={i} variant="outline" className="text-[10px] px-1 py-0 h-5 bg-slate-50">
-                                {app.university_name}
-                              </Badge>
-                            ))}
-                            {student.applications.length > 2 && (
-                              <Badge variant="secondary" className="text-[10px] px-1 py-0 h-5">
-                                +{student.applications.length - 2}
-                              </Badge>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={DOCS_COLORS[student.docs]}>
-                        {student.docs}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => onGenerateReport(student)} title="Generate AI Report">
-                          <Bot size={16} className="text-purple-600" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onNotify(student)} title="Send Notification">
-                          <Send size={16} className="text-blue-600" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onEdit(student)}>
-                          <Edit size={16} className="text-slate-600" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => onDelete(student.id)}>
-                          <Trash2 size={16} className="text-red-400" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
-                    No students found.
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={`rounded-full font-normal px-2.5 ${getStatusColor(student.status)}`}>
+                      {student.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex -space-x-2 overflow-hidden pl-1">
+                      {student.applications && student.applications.length > 0 ? (
+                        student.applications.slice(0, 3).map((app, i) => (
+                          <div key={i} className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-secondary text-[10px] font-medium ring-2 ring-background" title={app.university_name}>
+                            {app.university_name.charAt(0)}
+                          </div>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground pl-2">No apps</span>
+                      )}
+                      {student.applications && student.applications.length > 3 && (
+                        <div className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-medium ring-2 ring-background">
+                          +{student.applications.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-3">
+                       <div className="h-1.5 w-20 bg-secondary rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-500 ${
+                              student.status === 'Accepted' ? 'bg-emerald-500' : 'bg-primary'
+                            }`}
+                            style={{ width: `${student.status === 'Accepted' ? 100 : Math.random() * 60 + 20}%` }} 
+                          />
+                       </div>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => handleRowClick(student.id)}>
+                        <Eye size={16} />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => onNotify(student)}>
+                        <Bell size={16} />
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground">
+                            <MoreHorizontal size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleRowClick(student.id)}>View Profile</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onEdit(student)}>Edit Details</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => onDelete(student.id)}>
+                            Delete Student
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
                   </TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      <div className="flex items-center justify-between px-2 text-xs text-muted-foreground">
+        <div>Showing {filteredStudents.length} of {students.length} students</div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" disabled className="h-8 text-xs">Previous</Button>
+          <Button variant="outline" size="sm" disabled className="h-8 text-xs">Next</Button>
+        </div>
+      </div>
     </div>
   );
 }

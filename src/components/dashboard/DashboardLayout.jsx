@@ -1,127 +1,186 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Outlet } from 'react-router-dom';
-import { GraduationCap, LayoutDashboard, Users, Settings, LogOut, Menu, BookOpen, Brain } from 'lucide-react';
+import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { 
+  LayoutDashboard, 
+  Users, 
+  GraduationCap, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  Bell, 
+  Search, 
+  ChevronLeft,
+  ChevronRight,
+  Command,
+  Sparkles
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { supabase } from '@/lib/supabase';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Badge } from '@/components/ui/badge';
 
 export default function DashboardLayout() {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
+  const navItems = [
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Users, label: 'Students', path: '/dashboard/students' },
+    { icon: GraduationCap, label: 'Universities', path: '/dashboard/universities' },
+    { icon: Sparkles, label: 'Brainstorm', path: '/dashboard/brainstorm' },
+  ];
 
   const isActive = (path) => {
-    if (path === '/dashboard' && location.pathname === '/dashboard') return true;
-    if (path !== '/dashboard' && location.pathname.startsWith(path)) return true;
-    return false;
+    if (path === '/dashboard' && !location.search) return location.pathname === '/dashboard';
+    return location.pathname + location.search === path;
   };
 
-  const NavButton = ({ path, icon: Icon, label }) => (
-    <Button
-      variant={isActive(path) ? 'secondary' : 'ghost'}
-      className="w-full justify-start gap-3"
-      onClick={() => { navigate(path); setIsMobileOpen(false); }}
-    >
-      <Icon size={20} />
-      {label}
-    </Button>
-  );
-
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex w-64 flex-col bg-white border-r fixed h-full z-20">
-        <div className="flex flex-col h-full">
-          <div className="flex items-center gap-3 px-6 py-6 border-b">
-            <div className="bg-emerald-600 text-white p-2 rounded-lg">
-              <GraduationCap size={24} />
+      <aside 
+        className={`hidden md:flex flex-col border-r bg-card transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'w-[70px]' : 'w-[240px]'
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div className="h-14 flex items-center px-4 border-b">
+          <div className={`flex items-center gap-2 font-semibold text-lg overflow-hidden whitespace-nowrap ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
+            <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
+              AC
             </div>
-            <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-              Agent<span className="text-emerald-600">Command</span>
-            </h1>
+            {!isSidebarCollapsed && <span className="truncate">AgentCommand</span>}
           </div>
+        </div>
 
-          <nav className="flex-1 px-4 py-6 space-y-2">
-            <NavButton path="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-            <NavButton path="/dashboard/students" icon={Users} label="All Students" />
-            <NavButton path="/dashboard/universities" icon={BookOpen} label="Universities" />
-            <NavButton path="/dashboard/brainstorm" icon={Brain} label="Brainstorm" />
-            <NavButton path="/dashboard/settings" icon={Settings} label="Settings" />
+        {/* Navigation */}
+        <div className="flex-1 py-4 overflow-y-auto">
+          <nav className="space-y-1 px-2">
+            {navItems.map((item) => (
+              <Button
+                key={item.path}
+                variant={isActive(item.path) ? "secondary" : "ghost"}
+                className={`w-full justify-start ${isSidebarCollapsed ? 'px-2 justify-center' : 'px-3'} mb-1`}
+                onClick={() => navigate(item.path)}
+                title={isSidebarCollapsed ? item.label : ''}
+              >
+                <item.icon size={20} className={isSidebarCollapsed ? '' : 'mr-3'} />
+                {!isSidebarCollapsed && <span>{item.label}</span>}
+              </Button>
+            ))}
           </nav>
+        </div>
 
-          <div className="p-4 border-t">
-            <Button 
-              variant="ghost" 
-              className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50"
-              onClick={handleSignOut}
-            >
-              <LogOut size={20} />
+        {/* Sidebar Footer */}
+        <div className="p-2 border-t">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="w-full justify-center"
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          >
+            {isSidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </Button>
+          
+          <div className={`mt-2 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
+            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
+              <LogOut size={18} className="mr-3" />
               Sign Out
             </Button>
           </div>
         </div>
       </aside>
 
-      {/* Mobile Sidebar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-20 flex items-center px-4 justify-between">
-        <div className="flex items-center gap-2">
-           <div className="bg-emerald-600 text-white p-1.5 rounded-lg">
-            <GraduationCap size={20} />
-          </div>
-          <span className="font-bold text-lg">AgentCommand</span>
-        </div>
-        <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <Menu size={24} />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64">
-
-            <div className="flex flex-col h-full">
-              <div className="flex items-center gap-3 px-6 py-6 border-b">
-                <div className="bg-emerald-600 text-white p-2 rounded-lg">
-                  <GraduationCap size={24} />
-                </div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-                  Agent<span className="text-emerald-600">Command</span>
-                </h1>
-              </div>
-
-              <nav className="flex-1 px-4 py-6 space-y-2">
-                <NavButton path="/dashboard" icon={LayoutDashboard} label="Dashboard" />
-                <NavButton path="/dashboard/students" icon={Users} label="All Students" />
-                <NavButton path="/dashboard/universities" icon={BookOpen} label="Universities" />
-                <NavButton path="/dashboard/brainstorm" icon={Brain} label="Brainstorm" />
-                <NavButton path="/dashboard/settings" icon={Settings} label="Settings" />
-              </nav>
-
-              <div className="p-4 border-t">
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start gap-3 text-red-500 hover:text-red-600 hover:bg-red-50"
-                  onClick={handleSignOut}
-                >
-                  <LogOut size={20} />
-                  Sign Out
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top Header */}
+        <header className="h-14 border-b bg-card flex items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center gap-4 flex-1">
+            {/* Mobile Menu Trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden">
+                  <Menu size={20} />
                 </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[240px] p-0">
+                <div className="h-14 flex items-center px-4 border-b font-bold text-lg">
+                  AgentCommand
+                </div>
+                <nav className="p-4 space-y-2">
+                  {navItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant={isActive(item.path) ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => navigate(item.path)}
+                    >
+                      <item.icon size={20} className="mr-3" />
+                      {item.label}
+                    </Button>
+                  ))}
+                </nav>
+              </SheetContent>
+            </Sheet>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md w-full hidden sm:block">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Search students, applications..." 
+                className="pl-9 h-9 bg-secondary/50 border-transparent focus:bg-background focus:border-input transition-all"
+              />
+              <div className="absolute right-2.5 top-2.5 hidden md:flex items-center gap-1">
+                <Badge variant="outline" className="h-5 px-1 text-[10px] text-muted-foreground">⌘K</Badge>
               </div>
             </div>
-          </SheetContent>
-        </Sheet>
-      </div>
+          </div>
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-64 pt-16 md:pt-0 p-8 overflow-y-auto h-screen">
-        <div className="max-w-6xl mx-auto">
-          <Outlet />
-        </div>
-      </main>
+          {/* Right Actions */}
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" className="relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-background"></span>
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="h-8 w-8 rounded-full p-0">
+                  <Avatar className="h-8 w-8 border">
+                    <AvatarImage src="/placeholder-avatar.jpg" />
+                    <AvatarFallback>AD</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 bg-secondary/10">
+          <div className="max-w-[1600px] mx-auto space-y-6">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
