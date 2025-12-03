@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -56,8 +58,8 @@ export default function DashboardLayout() {
         {/* Sidebar Header */}
         <div className="h-14 flex items-center px-4 border-b">
           <div className={`flex items-center gap-2 font-semibold text-lg overflow-hidden whitespace-nowrap ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
-            <div className="h-8 w-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center flex-shrink-0">
-              AC
+            <div className="h-8 w-8 flex items-center justify-center flex-shrink-0">
+              <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-8 w-8 object-contain" />
             </div>
             {!isSidebarCollapsed && <span className="truncate">AgentCommand</span>}
           </div>
@@ -93,7 +95,14 @@ export default function DashboardLayout() {
           </Button>
           
           <div className={`mt-2 ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-muted-foreground hover:text-destructive"
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/login');
+              }}
+            >
               <LogOut size={18} className="mr-3" />
               Sign Out
             </Button>
@@ -114,7 +123,8 @@ export default function DashboardLayout() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[240px] p-0">
-                <div className="h-14 flex items-center px-4 border-b font-bold text-lg">
+                <div className="h-14 flex items-center px-4 border-b font-bold text-lg gap-2">
+                  <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-6 w-6 object-contain" />
                   AgentCommand
                 </div>
                 <nav className="p-4 space-y-2">
@@ -129,6 +139,17 @@ export default function DashboardLayout() {
                       {item.label}
                     </Button>
                   ))}
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      navigate('/login');
+                    }}
+                  >
+                    <LogOut size={20} className="mr-3" />
+                    Sign Out
+                  </Button>
                 </nav>
               </SheetContent>
             </Sheet>
@@ -146,8 +167,11 @@ export default function DashboardLayout() {
             </div>
           </div>
 
+
+
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             <Button variant="ghost" size="icon" className="relative">
               <Bell size={18} />
               <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border-2 border-background"></span>
@@ -168,7 +192,15 @@ export default function DashboardLayout() {
                 <DropdownMenuItem>Profile</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-destructive cursor-pointer"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    navigate('/login');
+                  }}
+                >
+                  Log out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

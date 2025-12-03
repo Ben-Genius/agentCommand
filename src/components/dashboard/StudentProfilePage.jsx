@@ -483,7 +483,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
   return (
     <div className="h-[calc(100vh-6rem)] flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b">
+      <div className="flex gap-6 md:gap-0 md:flex-row justify-between flex-col mb-6 pb-4 border-b">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft size={18} />
@@ -817,6 +817,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
         <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Student Profile</DialogTitle>
+            <DialogDescription>Update the student's personal and academic information.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleStatsSave} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -891,7 +892,7 @@ export default function StudentProfilePage({ student, onBack, onUpdate }) {
       </Dialog>
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto">
+        <SheetContent className="w-[400px] sm:w-[540px] md:w-[6000px] overflow-y-auto">
           {viewApp && (
             <>
               <SheetHeader className="mb-6">
