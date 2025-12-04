@@ -29,6 +29,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/theme-toggle';
+import logo from '@/assets/logo.png';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function DashboardLayout() {
         <div className="h-14 flex items-center px-4 border-b">
           <div className={`flex items-center gap-2 font-semibold text-lg overflow-hidden whitespace-nowrap ${isSidebarCollapsed ? 'justify-center w-full' : ''}`}>
             <div className="h-8 w-8 flex items-center justify-center flex-shrink-0">
-              <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-8 w-8 object-contain" />
+              <img src={logo} alt="AgentCommand Logo" className="h-8 w-8 object-contain" />
             </div>
             {!isSidebarCollapsed && <span className="truncate">AgentCommand</span>}
           </div>
@@ -124,7 +125,7 @@ export default function DashboardLayout() {
               </SheetTrigger>
               <SheetContent side="left" className="w-[240px] p-0">
                 <div className="h-14 flex items-center px-4 border-b font-bold text-lg gap-2">
-                  <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-6 w-6 object-contain" />
+                  <img src={logo} alt="AgentCommand Logo" className="h-6 w-6 object-contain" />
                   AgentCommand
                 </div>
                 <nav className="p-4 space-y-2">

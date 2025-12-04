@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, ArrowRight, CheckCircle, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import logo from '@/assets/logo.png';
 
 export default function LandingPage() {
   const [scrollY, setScrollY] = React.useState(0);
@@ -22,7 +23,7 @@ export default function LandingPage() {
       {/* Navigation */}
       <nav className="relative z-10 flex items-center justify-between px-4 sm:px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-8 sm:h-10 w-auto object-contain" />
+          <img src={logo} alt="AgentCommand Logo" className="h-8 sm:h-10 w-auto object-contain" />
           <span className="text-lg sm:text-xl font-bold tracking-tight">
             Agent<span className="text-primary">Command</span>
           </span>

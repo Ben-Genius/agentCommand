@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, ArrowRight, CheckCircle2, ShieldCheck } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -42,7 +43,7 @@ export default function LoginPage() {
         
         <Link to="/" className="relative z-10">
           <div className="flex items-center gap-3">
-            <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
+            <img src={logo} alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
             <span className="text-2xl font-bold tracking-tight text-white">AgentCommand</span>
           </div>
         </Link>
@@ -86,7 +87,7 @@ export default function LoginPage() {
         <div className="max-w-[400px] w-full space-y-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 lg:bg-transparent lg:shadow-none lg:border-none lg:p-0">
           <div className="text-center lg:text-left space-y-2">
             <div className="lg:hidden flex justify-center mb-6">
-              <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
+              <img src={logo} alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">Sign in</h2>
             <p className="text-gray-500">Enter your email and password to access your account.</p>

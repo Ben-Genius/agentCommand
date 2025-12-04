@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, CheckCircle2, XCircle, ArrowRight, ShieldCheck, Globe2, Users } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -82,7 +83,7 @@ export default function SignupPage() {
         
         <Link to="/" className="relative z-10">
           <div className="flex items-center gap-3">
-            <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
+            <img src={logo} alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
             <span className="text-2xl font-bold tracking-tight text-white">AgentCommand</span>
           </div>
         </Link>
@@ -126,7 +127,7 @@ export default function SignupPage() {
         <div className="max-w-[440px] w-full space-y-8 bg-white p-8 rounded-2xl shadow-sm border border-gray-100 lg:bg-transparent lg:shadow-none lg:border-none lg:p-0">
           <div className="text-center lg:text-left space-y-2">
             <div className="lg:hidden flex justify-center mb-6">
-              <img src="/src/assets/logo.png" alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
+              <img src={logo} alt="AgentCommand Logo" className="h-12 w-auto object-contain" />
             </div>
             <h2 className="text-3xl font-bold tracking-tight text-gray-900">Create an account</h2>
             <p className="text-gray-500">Enter your details to get started with your 14-day free trial.</p>
