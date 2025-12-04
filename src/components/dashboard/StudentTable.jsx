@@ -37,6 +37,9 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
+
 export default function StudentTable({ 
   students, 
   searchTerm, 
@@ -91,6 +94,69 @@ export default function StudentTable({
     }
   };
 
+  const getDocStatusColor = (status) => {
+    switch (status) {
+      case 'Verified': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+      case 'Collected': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Partial': return 'bg-amber-100 text-amber-700 border-amber-200';
+      case 'Missing': return 'bg-red-100 text-red-700 border-red-200';
+      default: return 'bg-slate-100 text-slate-700 border-slate-200';
+    }
+  };
+
+  const handleDownloadDocument = async (doc, e) => {
+    e.stopPropagation();
+    try {
+      const { data, error } = await supabase.storage
+        .from('student-documents')
+        .createSignedUrl(doc.file_path, 60);
+
+      if (error) throw error;
+      window.open(data.signedUrl, '_blank');
+    } catch (error) {
+      toast.error('Failed to download document');
+    }
+  };
+
+  const handleExport = () => {
+    // Define headers
+    const headers = ['Name', 'Email', 'Status', 'Documents', 'Applications'];
+    
+    // Convert data to CSV format
+    const csvContent = [
+      headers.join(','),
+      ...filteredStudents.map(student => {
+        const apps = student.applications 
+          ? student.applications.map(app => app.university_name).join('; ') 
+          : '';
+        const docs = student.documents
+          ? student.documents.map(d => d.name).join('; ')
+          : '';
+          
+        return [
+          `"${student.name}"`,
+          `"${student.email}"`,
+          `"${student.status}"`,
+          `"${docs}"`,
+          `"${apps}"`
+        ].join(',');
+      })
+    ].join('\n');
+
+    // Create blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `students_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
       {/* Toolbar */}
@@ -140,7 +206,7 @@ export default function StudentTable({
               </Button>
             </div>
           )}
-          <Button variant="outline" size="sm" className="h-9">
+          <Button variant="outline" size="sm" className="h-9" onClick={handleExport}>
             <Download size={14} className="mr-2" /> Export
           </Button>
           <Button size="sm" className="h-9" onClick={onAdd}>
@@ -166,6 +232,7 @@ export default function StudentTable({
                 </div>
               </TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Documents</TableHead>
               <TableHead>Applications</TableHead>
               <TableHead>Progress</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -174,7 +241,7 @@ export default function StudentTable({
           <TableBody>
             {filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Search className="h-8 w-8 opacity-20" />
                     <p>No students found matching your criteria.</p>
@@ -213,6 +280,28 @@ export default function StudentTable({
                     <Badge variant="outline" className={`rounded-full font-normal px-2.5 ${getStatusColor(student.status)}`}>
                       {student.status}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {student.documents && student.documents.length > 0 ? (
+                        student.documents.slice(0, 2).map((doc, i) => (
+                          <Badge 
+                            key={i} 
+                            variant="outline" 
+                            className="rounded-md font-normal px-2 py-0.5 bg-blue-50 text-blue-700 border-blue-200 cursor-pointer hover:bg-blue-100 transition-colors w-fit max-w-[150px] truncate"
+                            onClick={(e) => handleDownloadDocument(doc, e)}
+                          >
+                            <FileText size={10} className="mr-1 inline" />
+                            {doc.name}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">No documents</span>
+                      )}
+                      {student.documents && student.documents.length > 2 && (
+                        <span className="text-[10px] text-muted-foreground pl-1">+{student.documents.length - 2} more</span>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex -space-x-2 overflow-hidden pl-1">

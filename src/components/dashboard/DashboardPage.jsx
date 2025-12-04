@@ -62,7 +62,7 @@ export default function DashboardPage({ view: propView }) {
       setLoading(true);
       const { data, error } = await supabase
         .from('students')
-        .select('*, applications(university_name, status)')
+        .select('*, applications(university_name, status), documents(*)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       setStudents(data || []);
